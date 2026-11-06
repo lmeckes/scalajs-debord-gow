@@ -91,7 +91,7 @@ class InfoPanel(root: html.Element) {
       case _ => ("Attack fails", "fail")
     }
     val attackerTeam = target.canBeTargetOf.headOption.map(s => team(s.unit.player)).getOrElse(team(Neutral))
-    def thumbs(squares: Iterable[Square]) = squares.map(portrait(_, "thumb")).mkString
+    def thumbs(squares: Iterable[Square]) = squares.toSeq.map(portrait(_, "thumb")).mkString
     val share = if (attack + defence == 0) 50 else 100 * attack / (attack + defence)
     root.innerHTML =
       s"""<div class="battle-title">Attack on ${name(target.unit)}</div>
