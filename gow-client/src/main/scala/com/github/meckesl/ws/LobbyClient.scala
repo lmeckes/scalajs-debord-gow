@@ -5,7 +5,11 @@ import org.scalajs.dom.{Event, HTMLButtonElement, HTMLDivElement, HTMLInputEleme
 
 class LobbyClient(div : HTMLDivElement, input: HTMLInputElement, send: HTMLButtonElement) {
 
-  private val connection = new WebSocket("ws://localhost:8080/lobby")
+  private val connection = {
+    val location = dom.window.location
+    val scheme = if (location.protocol == "https:") "wss" else "ws"
+    new WebSocket(s"$scheme://${location.host}/lobby")
+  }
 
   input.onkeydown = (e: dom.KeyboardEvent) => {
     println("lobby message")
