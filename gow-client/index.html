@@ -1,78 +1,512 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Debord Game of War</title>
+    <title>Le Jeu de la Guerre</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta name="theme-color" content="#0e1116"/>
     <style>
-        .c { position: absolute; left: 0; }
-        .top { top: 0; }
-        .bottom { bottom: 0; }
-        .bg {
-            background-image: url('target/scala-2.13/classes/background.png');
-            background-position: center center;
-            background-repeat: no-repeat;
-            background-attachment: fixed;
-            background-size: cover;
-            -webkit-background-size: cover;
-            -moz-background-size: cover;
-            -o-background-size: cover;
+        :root {
+            --bg: #0e1116;
+            --surface: rgba(24, 28, 36, 0.72);
+            --surface-solid: #181c24;
+            --surface-2: rgba(255, 255, 255, 0.04);
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #e8eaf0;
+            --muted: #8b93a7;
+            --accent: #d4a24c;
+            --accent-hover: #e2b462;
+            --red: #e5484d;
+            --blue: #3e8ef7;
+            --green: #3dd68c;
+            --radius: 14px;
+            --font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
+        * { box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; }
+        body {
+            background:
+                radial-gradient(1200px 600px at 20% -10%, rgba(212, 162, 76, 0.10), transparent 60%),
+                radial-gradient(900px 600px at 110% 110%, rgba(62, 142, 247, 0.08), transparent 60%),
+                var(--bg);
+            color: var(--text);
+            font: 14px/1.45 var(--font);
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
+        }
+        button, input { font: inherit; color: inherit; }
+
+        #app { display: flex; flex-direction: column; height: 100vh; }
+
+        /* Top bar */
+        .topbar {
+            display: flex; align-items: center; justify-content: space-between; gap: 16px;
+            padding: 12px 20px; border-bottom: 1px solid var(--border);
+            background: rgba(14, 17, 22, 0.7); backdrop-filter: blur(12px);
+        }
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .brand-mark {
+            width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
+            background: linear-gradient(135deg, var(--red), #8a2b2e 45%, #1f4f99 55%, var(--blue));
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+            font-weight: 800; font-size: 15px; letter-spacing: -0.5px;
+        }
+        .brand-title { font-weight: 700; font-size: 16px; letter-spacing: 0.2px; }
+        .brand-sub { color: var(--muted); font-size: 12px; }
+        .topbar-right { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; }
+        kbd {
+            display: inline-block; min-width: 20px; padding: 1px 6px; border-radius: 6px; text-align: center;
+            background: var(--surface-2); border: 1px solid var(--border); border-bottom-width: 2px;
+            font: 600 11px/1.5 var(--font); color: var(--text);
+        }
+        #connStatus {
+            padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+            background: rgba(229, 72, 77, 0.15); color: #ff9a9d; border: 1px solid rgba(229, 72, 77, 0.3);
+        }
+        #connStatus:empty { display: none; }
+
+        /* Main layout */
+        main { flex: 1; display: flex; gap: 16px; padding: 12px 20px 16px; min-height: 0; }
+        #boardWrap { flex: 1; position: relative; min-width: 0; display: grid; place-items: center; }
+        #board {
+            position: relative; border-radius: 6px; overflow: hidden;
+            background: url('target/scala-2.13/classes/background.png') center / cover no-repeat;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
+            transition: box-shadow 0.4s ease;
+        }
+        body[data-turn=r] #board { box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 0 2px rgba(229, 72, 77, 0.75), 0 0 40px rgba(229, 72, 77, 0.25); }
+        body[data-turn=b] #board { box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 0 2px rgba(62, 142, 247, 0.75), 0 0 40px rgba(62, 142, 247, 0.25); }
+        #board canvas { position: absolute; top: 0; left: 0; display: block; }
+        #comCanvas { opacity: 0.5; }
+
+        /* Side panel */
         #panel {
-            position: absolute; top: 10px; right: 10px; z-index: 999; width: 280px;
-            max-height: calc(100vh - 20px); overflow-y: auto;
-            background: rgba(20, 20, 20, 0.85); color: #eee; padding: 10px; border-radius: 6px;
-            font: 13px sans-serif;
+            width: 340px; flex-shrink: 0; overflow-y: auto; padding: 0;
+            display: flex; flex-direction: column; gap: 12px;
         }
-        #panel h4 { margin: 10px 0 4px; }
-        #panel ul { margin: 0; padding-left: 18px; }
-        #panel input[type=text] { width: 150px; }
-        #panel button { margin: 2px 0; }
-        #panel .row { margin: 6px 0; }
-        #connStatus { color: #f88; }
-        #gameStatus { font-weight: bold; margin: 6px 0; }
-        #opponentStatus { color: #f88; }
-        #shareLink { width: 100% !important; box-sizing: border-box; }
-        #chatLog { height: 120px; overflow-y: auto; background: rgba(0, 0, 0, 0.4); padding: 4px; margin-bottom: 4px; }
-        #chatInput { width: 100% !important; box-sizing: border-box; }
+        .card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+            padding: 16px; backdrop-filter: blur(16px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        }
+        .card h3 {
+            margin: 0 0 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+            text-transform: uppercase; color: var(--muted);
+        }
+        .card h3 + * { margin-top: 0; }
+        .section + .section { margin-top: 16px; }
+        .row { display: flex; gap: 8px; align-items: center; }
+        .row + .row { margin-top: 8px; }
+        .grow { flex: 1; min-width: 0; }
+
+        button {
+            border: 1px solid var(--border); background: var(--surface-2); border-radius: 10px;
+            padding: 9px 14px; font-weight: 600; cursor: pointer;
+            transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+        }
+        button:hover { background: rgba(255, 255, 255, 0.09); border-color: rgba(255, 255, 255, 0.16); }
+        button:active { transform: translateY(1px); }
+        button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        button.primary {
+            background: linear-gradient(180deg, var(--accent-hover), var(--accent)); color: #1a1408; border-color: transparent;
+            box-shadow: 0 6px 16px rgba(212, 162, 76, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+        button.primary:hover { background: linear-gradient(180deg, #ecc277, var(--accent-hover)); }
+        button.danger { color: #ff9a9d; }
+        button.danger:hover { background: rgba(229, 72, 77, 0.15); border-color: rgba(229, 72, 77, 0.4); }
+        button.link { background: none; border: none; padding: 2px 6px; color: var(--accent); font-weight: 600; }
+        button.block { width: 100%; }
+        input[type=text] {
+            width: 100%; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.25); outline: none; transition: border-color 0.15s ease;
+        }
+        input[type=text]:focus { border-color: rgba(212, 162, 76, 0.6); }
+        input::placeholder { color: #5f6678; }
+
+        .me { display: flex; align-items: center; gap: 10px; }
+        .avatar {
+            width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center;
+            background: linear-gradient(135deg, #3a3f4d, #262a34); font-weight: 700; font-size: 13px;
+            border: 1px solid var(--border);
+        }
+        .me-name { font-weight: 700; }
+        .me-label { color: var(--muted); font-size: 12px; }
+
+        #searchStatus { color: var(--muted); font-size: 13px; margin-top: 12px; display: flex; gap: 10px; align-items: center; }
+        #searchStatus:empty { display: none; }
+        #searchStatus::before {
+            content: ""; width: 14px; height: 14px; flex-shrink: 0; border-radius: 50%;
+            border: 2px solid rgba(212, 162, 76, 0.25); border-top-color: var(--accent);
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #shareLink { margin-top: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+        #cancelBtn { margin-top: 8px; }
+
+        ul.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+        ul.list li {
+            display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px;
+            background: var(--surface-2); font-size: 13px;
+        }
+        ul.list li.empty { background: none; color: var(--muted); padding: 2px 0; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px rgba(61, 214, 140, 0.6); }
+        .status-dot.busy { background: var(--accent); box-shadow: 0 0 8px rgba(212, 162, 76, 0.6); }
+        .pill-status { margin-left: auto; font-size: 11px; color: var(--muted); }
+        .team-name.red { color: #ff8d90; font-weight: 600; }
+        .team-name.blue { color: #85b6ff; font-weight: 600; }
+        .vs-small { color: var(--muted); font-size: 11px; }
+
+        /* Game card */
+        #gameTitle { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+        .turn { display: flex; align-items: center; gap: 10px; }
+        #turnDot { width: 12px; height: 12px; border-radius: 50%; background: var(--muted); flex-shrink: 0; transition: background 0.3s ease, box-shadow 0.3s ease; }
+        #turnDot.r { background: var(--red); box-shadow: 0 0 12px rgba(229, 72, 77, 0.8); }
+        #turnDot.b { background: var(--blue); box-shadow: 0 0 12px rgba(62, 142, 247, 0.8); }
+        #gameStatus { font-weight: 700; font-size: 15px; }
+        #movePips { display: flex; gap: 6px; margin: 12px 0 4px; }
+        #movePips span { flex: 1; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.08); transition: background 0.3s ease; }
+        #movePips.r span.on { background: var(--red); }
+        #movePips.b span.on { background: var(--blue); }
+        .pips-label { color: var(--muted); font-size: 12px; }
+        #opponentStatus { color: #ff9a9d; font-size: 13px; margin-top: 8px; }
+        #opponentStatus:empty { display: none; }
+        .actions { display: grid; gap: 8px; margin-top: 14px; }
+        .hint { color: var(--muted); font-size: 12px; text-align: center; }
+
+        /* Unit info */
+        .info-empty { color: var(--muted); font-size: 13px; text-align: center; padding: 10px 0; line-height: 1.6; }
+        .unit-head { display: flex; gap: 14px; align-items: center; }
+        .portrait, .thumb {
+            position: relative; flex-shrink: 0; border-radius: 12px; overflow: hidden;
+            background: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.02));
+            border: 1px solid var(--border);
+        }
+        .portrait { width: 72px; height: 72px; }
+        .thumb { width: 34px; height: 34px; border-radius: 8px; }
+        .portrait.red, .thumb.red { background: radial-gradient(circle at 50% 80%, rgba(229, 72, 77, 0.45), rgba(229, 72, 77, 0.05) 70%); border-color: rgba(229, 72, 77, 0.35); }
+        .portrait.blue, .thumb.blue { background: radial-gradient(circle at 50% 80%, rgba(62, 142, 247, 0.45), rgba(62, 142, 247, 0.05) 70%); border-color: rgba(62, 142, 247, 0.35); }
+        .portrait img, .thumb img { position: absolute; inset: 8%; width: 84%; height: 84%; object-fit: contain; }
+        .portrait img.terrain, .thumb img.terrain { opacity: 0.45; }
+        .unit-name { font-weight: 700; font-size: 16px; }
+        .unit-sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+        .unit-status { margin-top: 6px; font-size: 12px; color: var(--muted); }
+        .chip { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+        .chip.red { background: rgba(229, 72, 77, 0.18); color: #ff8d90; }
+        .chip.blue { background: rgba(62, 142, 247, 0.18); color: #85b6ff; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
+        .badge.ok { color: var(--green); border-color: rgba(61, 214, 140, 0.3); background: rgba(61, 214, 140, 0.08); }
+        .badge.warn { color: #ffb86b; border-color: rgba(255, 184, 107, 0.3); background: rgba(255, 184, 107, 0.08); }
+        .stats { display: grid; gap: 8px; margin-top: 14px; }
+        .stat { display: grid; grid-template-columns: 74px 1fr 22px; align-items: center; gap: 10px; font-size: 12px; }
+        .stat-label { color: var(--muted); }
+        .stat-bar { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.07); overflow: hidden; }
+        .stat-bar span { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #b07f2f, var(--accent-hover)); }
+        .stat-value { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .battle-title { font-weight: 700; margin-bottom: 12px; }
+        .battle { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: start; }
+        .side { padding: 10px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); text-align: center; }
+        .side.red { border-color: rgba(229, 72, 77, 0.35); }
+        .side.blue { border-color: rgba(62, 142, 247, 0.35); }
+        .side-label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+        .side-value { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; }
+        .side.red .side-value { color: #ff8d90; }
+        .side.blue .side-value { color: #85b6ff; }
+        .thumbs { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-top: 6px; }
+        .vs { align-self: center; color: var(--muted); font-weight: 700; font-size: 12px; }
+        .odds { height: 8px; border-radius: 4px; margin-top: 12px; overflow: hidden; background: var(--blue); }
+        .odds.blue { background: var(--red); }
+        .odds span { display: block; height: 100%; background: var(--red); transition: width 0.2s ease; }
+        .odds.blue span { background: var(--blue); }
+        .outcome { margin-top: 12px; padding: 8px; text-align: center; border-radius: 10px; font-weight: 700; }
+        .outcome.win { background: rgba(61, 214, 140, 0.12); color: var(--green); }
+        .outcome.retreat { background: rgba(212, 162, 76, 0.14); color: var(--accent-hover); }
+        .outcome.fail { background: rgba(255, 255, 255, 0.05); color: var(--muted); }
+
+        /* Chat */
+        #chatCard { display: flex; flex-direction: column; min-height: 200px; flex: 1; }
+        #chatLog { flex: 1; min-height: 80px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; font-size: 13px; }
+        #chatLog:empty::before { content: "No messages yet"; color: var(--muted); font-size: 12px; }
+        #chatLog > div { padding: 6px 10px; border-radius: 10px; background: var(--surface-2); word-wrap: break-word; }
+        #chatLog b { color: var(--accent-hover); font-weight: 600; }
+
+        /* Login modal */
+        #loginView {
+            position: fixed; inset: 0; z-index: 100; background: rgba(8, 10, 14, 0.55);
+        }
+        body:has(#loginView[style*="block"]) #app, body:has(#rulesView[style*="block"]) #app { filter: blur(8px); }
+        .modal {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: min(420px, calc(100vw - 32px)); padding: 32px; text-align: center;
+            background: var(--surface-solid); border: 1px solid var(--border); border-radius: 20px;
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);
+            animation: pop 0.25s ease-out;
+        }
+        @keyframes pop { from { opacity: 0; transform: translate(-50%, -46%) scale(0.98); } }
+        .modal .brand-mark { width: 56px; height: 56px; border-radius: 16px; font-size: 22px; margin: 0 auto 16px; }
+        .modal h1 { margin: 0; font-size: 24px; letter-spacing: -0.3px; }
+        .modal p { color: var(--muted); margin: 8px 0 24px; }
+        .modal .row { margin-top: 0; }
+
+        #rulesBtn { padding: 6px 12px; font-size: 13px; }
+        /* Rules modal */
+        #rulesView { position: fixed; inset: 0; z-index: 100; background: rgba(8, 10, 14, 0.6); }
+        .modal.rules {
+            width: min(780px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow-y: auto;
+            padding: 0; text-align: left; overflow-x: hidden; outline: none;
+        }
+        .rules-head {
+            position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 14px;
+            padding: 20px 28px; background: var(--surface-solid); border-bottom: 1px solid var(--border);
+        }
+        .rules-head .brand-mark { width: 40px; height: 40px; border-radius: 12px; font-size: 17px; margin: 0; }
+        .rules-head h1 { font-size: 20px; flex: 1; }
+        .rules-head p { margin: 2px 0 0; font-size: 13px; }
+        #rulesClose { width: 36px; height: 36px; padding: 0; font-size: 20px; line-height: 1; border-radius: 10px; }
+        .rules-body { padding: 8px 28px 4px; }
+        .rules h2 {
+            margin: 22px 0 10px; font-size: 12px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--accent);
+        }
+        .rules ul { margin: 0; padding-left: 18px; line-height: 1.6; font-size: 14px; }
+        .rules li { margin: 3px 0; }
+        .rules li b { color: var(--text); }
+        .rules .lead { color: var(--text); font-size: 15px; line-height: 1.6; margin: 0; }
+        .rules-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .rules-tile { padding: 12px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border); font-size: 13px; line-height: 1.5; color: var(--muted); }
+        .rules-tile b { display: block; color: var(--text); font-size: 14px; margin-bottom: 2px; }
+        .rules table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .rules th { text-align: left; font-weight: 600; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+        .rules td { padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        .rules td.n { text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; }
+        .rules th.n { text-align: center; }
+        .rules td img { width: 30px; height: 30px; object-fit: contain; vertical-align: middle; margin-right: 8px; }
+        .rules td.note { color: var(--muted); }
+        .outcomes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+        .outcomes div { padding: 10px; border-radius: 10px; text-align: center; font-size: 13px; border: 1px solid var(--border); }
+        .outcomes b { display: block; font-size: 15px; margin-bottom: 2px; }
+        .outcomes .safe { background: rgba(62, 142, 247, 0.12); }
+        .outcomes .back { background: rgba(232, 179, 75, 0.14); }
+        .outcomes .kill { background: rgba(229, 72, 77, 0.14); }
+        .rules-foot {
+            position: sticky; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            padding: 16px 28px; background: var(--surface-solid); border-top: 1px solid var(--border); margin-top: 22px;
+        }
+        .rules-foot a { color: var(--accent); font-weight: 600; text-decoration: none; font-size: 14px; }
+        .rules-foot a:hover { text-decoration: underline; }
+        @media (max-width: 640px) {
+            .rules-grid, .outcomes { grid-template-columns: 1fr; }
+            .rules td.note, .rules th:last-child { display: none; }
+            .rules td, .rules th { padding: 6px 4px; }
+            .rules-head, .rules-body, .rules-foot { padding-left: 18px; padding-right: 18px; }
+        }
+
+        /* Toast */
+        #toast {
+            position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px); z-index: 90;
+            padding: 10px 18px; border-radius: 999px; font-weight: 600; pointer-events: none;
+            background: var(--surface-solid); border: 1px solid var(--border); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+            opacity: 0; transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+        #toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
+
+        @media (max-width: 900px) {
+            body { overflow: auto; }
+            #app { height: auto; min-height: 100vh; }
+            main { flex-direction: column; }
+            #boardWrap { height: auto; aspect-ratio: 5 / 4; max-height: 80vh; }
+            #panel { width: auto; padding: 0; overflow: visible; }
+            .topbar-right .keys { display: none; }
+        }
     </style>
 </head>
 <body>
-<canvas id="backgroundCanvas" class="c top bg"></canvas>
-<canvas id="comCanvas" class="c top"></canvas>
-<canvas id="terrainCanvas" class="c top"></canvas>
-<canvas id="unitCanvas" class="c top"></canvas>
-<canvas id="overlayCanvas" class="c top"></canvas>
-<canvas id="interfaceCanvas" class="c bottom"></canvas>
-<div id="panel">
-    <div id="connStatus">Connecting...</div>
-    <div id="loginView" style="display: none">
-        <h4>Choose a nickname</h4>
-        <input type="text" id="nameInput" maxlength="20"> <button id="loginBtn">Enter lobby</button>
-    </div>
-    <div id="lobbyView" style="display: none">
-        <div class="row">Playing as <b id="meName"></b> <button id="renameBtn">change</button></div>
-        <div class="row"><button id="quickBtn">Quick match</button> <button id="privateBtn">Private game</button></div>
-        <div class="row"><input type="text" id="codeInput" placeholder="Game code" maxlength="5"> <button id="joinBtn">Join</button></div>
-        <div class="row"><button id="localBtn">Play locally (same screen)</button></div>
-        <div id="searchStatus"></div>
-        <input type="text" id="shareLink" readonly>
-        <button id="cancelBtn">Cancel</button>
-        <h4>Online</h4>
-        <ul id="playerList"></ul>
-        <h4>Games in progress</h4>
-        <ul id="gameList"></ul>
-    </div>
-    <div id="gameView">
-        <div id="gameTitle"></div>
-        <div id="gameStatus"></div>
-        <div id="opponentStatus"></div>
-        <button id="resignBtn">Resign</button>
-        <button id="leaveBtn">Back to lobby</button>
-    </div>
-    <h4>Chat</h4>
-    <div id="chatLog"></div>
-    <input type="text" id="chatInput" placeholder="Say something">
+<div id="app">
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-mark">G</div>
+            <div>
+                <div class="brand-title">Le Jeu de la Guerre</div>
+                <div class="brand-sub">Guy Debord &middot; 1987</div>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <span class="keys">Drag to move or attack &middot; <kbd>Space</kbd> end turn &middot; <kbd>D</kbd> save board</span>
+            <button id="rulesBtn">Rules</button>
+            <div id="connStatus">Connecting...</div>
+        </div>
+    </header>
+    <main>
+        <section id="boardWrap">
+            <div id="board">
+                <canvas id="backgroundCanvas"></canvas>
+                <canvas id="comCanvas"></canvas>
+                <canvas id="terrainCanvas"></canvas>
+                <canvas id="unitCanvas"></canvas>
+                <canvas id="overlayCanvas"></canvas>
+            </div>
+        </section>
+        <aside id="panel">
+            <div id="lobbyView" class="card" style="display: none">
+                <div class="me">
+                    <div class="avatar" id="meAvatar"></div>
+                    <div class="grow">
+                        <div class="me-label">Playing as</div>
+                        <div class="me-name" id="meName"></div>
+                    </div>
+                    <button id="renameBtn" class="link">Change</button>
+                </div>
+                <div class="section">
+                    <button id="quickBtn" class="primary block">Quick match</button>
+                    <div class="row"><button id="privateBtn" class="grow">Private game</button><button id="localBtn" class="grow">Local game</button></div>
+                    <div class="row"><input type="text" id="codeInput" placeholder="Game code" maxlength="5"><button id="joinBtn">Join</button></div>
+                    <div id="searchStatus"></div>
+                    <input type="text" id="shareLink" readonly>
+                    <button id="cancelBtn" class="block">Cancel</button>
+                </div>
+                <div class="section">
+                    <h3>Online</h3>
+                    <ul id="playerList" class="list"></ul>
+                </div>
+                <div class="section">
+                    <h3>Games in progress</h3>
+                    <ul id="gameList" class="list"></ul>
+                </div>
+            </div>
+            <div id="gameView" class="card">
+                <div id="gameTitle"></div>
+                <div class="turn"><span id="turnDot"></span><span id="gameStatus"></span></div>
+                <div id="movePips"></div>
+                <div class="pips-label" id="movesLabel"></div>
+                <div id="opponentStatus"></div>
+                <div class="actions">
+                    <button id="endTurnBtn" class="primary">End turn</button>
+                    <button id="resignBtn" class="danger">Resign</button>
+                    <button id="leaveBtn">Back to lobby</button>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Unit</h3>
+                <div id="infoPanel"></div>
+            </div>
+            <div id="chatCard" class="card">
+                <h3>Chat</h3>
+                <div id="chatLog"></div>
+                <input type="text" id="chatInput" placeholder="Say something&hellip;">
+            </div>
+        </aside>
+    </main>
 </div>
+<div id="loginView" style="display: none">
+    <div class="modal">
+        <div class="brand-mark">G</div>
+        <h1>Le Jeu de la Guerre</h1>
+        <p>Guy Debord's game of war, online. Choose a nickname to enter the lobby.</p>
+        <div class="row">
+            <input type="text" id="nameInput" maxlength="20" placeholder="Nickname">
+            <button id="loginBtn" class="primary">Enter</button>
+        </div>
+    </div>
+</div>
+<div id="rulesView" style="display: none" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
+    <div class="modal rules" tabindex="-1">
+        <div class="rules-head">
+            <div class="brand-mark">G</div>
+            <div style="flex: 1">
+                <h1 id="rulesTitle">How to play</h1>
+                <p>Le Jeu de la Guerre &middot; the rules as played here</p>
+            </div>
+            <button id="rulesClose" aria-label="Close">&times;</button>
+        </div>
+        <div class="rules-body">
+            <h2>Goal</h2>
+            <p class="lead">Two armies, North and South, face each other on a 25&times;20 map. You win by
+                <b>destroying both enemy arsenals</b> or <b>eliminating every enemy fighting unit</b>
+                (infantry, cavalry and cannons). Who starts is drawn at random.</p>
+
+            <h2>Your turn</h2>
+            <ul>
+                <li><b>Move up to 5 different units</b>, each once, by dragging them. A unit travels up to its
+                    movement in any of the 8 directions; it can't end on a mountain or an occupied square.</li>
+                <li><b>Attack once</b> by dragging one of your units onto an enemy within its range.</li>
+                <li><b>Take an arsenal</b> by moving a unit onto an enemy arsenal: it is destroyed.</li>
+                <li>Press <b>End turn</b> (or <kbd>Space</kbd>) to pass. Your turn also ends after your 5th move,
+                    a successful attack or taking an arsenal.</li>
+            </ul>
+
+            <h2>Communication</h2>
+            <ul>
+                <li><b>Arsenals</b> send lines of communication in the 8 directions; <b>relays</b> standing on a
+                    line pass it on, extending the network.</li>
+                <li>Lines are blocked by <b>mountains</b> and <b>enemy units</b>, but go through mountain passes.</li>
+                <li>A unit off the network is <b>cut off</b> (shown greyed out): it can't move and doesn't count in combat.
+                    Keep your army connected, and try to cut the enemy's lines.</li>
+            </ul>
+
+            <h2>Combat</h2>
+            <ul>
+                <li><b>Attack</b> = the attack of every connected enemy unit lined up with the target (straight or
+                    45&deg; diagonal) and close enough to reach it with its range.</li>
+                <li><b>Defence</b> = the defence of every connected friendly unit lined up with the target within its own range.</li>
+                <li><b>Cavalry charge</b>: +3 for each cavalry unit right next to the target, unless the target is in a fortress or mountain pass.</li>
+                <li>Mountains block lines of fire. While you drag onto a target, the side panel shows both totals and the expected result.</li>
+            </ul>
+            <div class="outcomes">
+                <div class="safe"><b>Attack &le; Defence</b>Repelled, nothing happens</div>
+                <div class="back"><b>Attack = Defence + 1</b>The target must retreat</div>
+                <div class="kill"><b>Attack &ge; Defence + 2</b>The target is destroyed</div>
+            </div>
+
+            <h2>Units</h2>
+            <table>
+                <thead><tr><th>Unit</th><th class="n">Move</th><th class="n">Range</th><th class="n">Attack</th><th class="n">Defence</th><th></th></tr></thead>
+                <tbody>
+                <tr><td><img src="target/scala-2.13/classes/tiles/i/0.png" alt="">Infantry</td><td class="n">1</td><td class="n">2</td><td class="n">4</td><td class="n">6</td><td class="note">Solid line unit</td></tr>
+                <tr><td><img src="target/scala-2.13/classes/tiles/v/0.png" alt="">Cavalry</td><td class="n">2</td><td class="n">2</td><td class="n">4</td><td class="n">5</td><td class="note">Charge +3 when adjacent</td></tr>
+                <tr><td><img src="target/scala-2.13/classes/tiles/c/0.png" alt="">Cannon</td><td class="n">1</td><td class="n">3</td><td class="n">5</td><td class="n">8</td><td class="note">Longest range</td></tr>
+                <tr><td><img src="target/scala-2.13/classes/tiles/n/0.png" alt="">Swift cannon</td><td class="n">2</td><td class="n">3</td><td class="n">5</td><td class="n">8</td><td class="note">Horse artillery</td></tr>
+                <tr><td><img src="target/scala-2.13/classes/tiles/r/0.png" alt="">Relay</td><td class="n">1</td><td class="n">&ndash;</td><td class="n">0</td><td class="n">1</td><td class="note">Extends communication</td></tr>
+                <tr><td><img src="target/scala-2.13/classes/tiles/e/0.png" alt="">Swift relay</td><td class="n">2</td><td class="n">&ndash;</td><td class="n">0</td><td class="n">1</td><td class="note">Faster relay</td></tr>
+                <tr><td><img src="target/scala-2.13/classes/tiles/a/0.png" alt="">Arsenal</td><td class="n">&ndash;</td><td class="n">&ndash;</td><td class="n">0</td><td class="n">0</td><td class="note">Source of communication; can't move</td></tr>
+                </tbody>
+            </table>
+
+            <h2>Terrain</h2>
+            <div class="rules-grid">
+                <div class="rules-tile"><b>Mountain</b>Impassable. Blocks movement, attacks and communication.</div>
+                <div class="rules-tile"><b>Mountain pass</b>Lets units and communication through. +2 defence for infantry and cannons.</div>
+                <div class="rules-tile"><b>Fortress</b>Either side may occupy it. +4 defence for infantry and cannons; no cavalry charge against it.</div>
+            </div>
+        </div>
+        <div class="rules-foot">
+            <a href="https://github.com/meckesl/scalajs-debord-gow/blob/master/rules.md" target="_blank" rel="noopener">Full rules (French) &#8599;</a>
+            <button id="rulesOk" class="primary">Got it</button>
+        </div>
+    </div>
+</div>
+<div id="toast"></div>
 <script type="text/javascript" src="target/scala-2.13/gow-client-opt.js"></script>
+<script>
+    (function () {
+        var view = document.getElementById('rulesView');
+        var isOpen = function () { return view.style.display === 'block'; };
+        var setOpen = function (open) {
+            view.style.display = open ? 'block' : 'none';
+            if (open) view.querySelector('.modal').focus();
+            else document.activeElement.blur();
+        };
+        document.getElementById('rulesBtn').onclick = function () { setOpen(true); };
+        document.getElementById('rulesClose').onclick = function () { setOpen(false); };
+        document.getElementById('rulesOk').onclick = function () { setOpen(false); };
+        view.addEventListener('click', function (e) { if (e.target === view) setOpen(false); });
+        // Keep game shortcuts (Space, D) from firing behind the dialog.
+        window.addEventListener('keydown', function (e) {
+            if (!isOpen()) return;
+            if (e.key === 'Escape') setOpen(false);
+            e.stopImmediatePropagation();
+        }, true);
+    })();
+</script>
 </body>
 </html>

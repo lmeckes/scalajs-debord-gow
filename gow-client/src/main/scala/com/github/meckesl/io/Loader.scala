@@ -24,23 +24,22 @@ object Loader {
     s"$resourcePath/sounds/$sound.mp3"
   }
 
+  def tileUrl(tile: Tile): String = {
+    if (tile.equals(VoidTile))
+      s"$resourcePath/tiles/dot/0.png"
+    else if (TileRepository.units.contains(tile)) {
+      val playerTag = if (tile.player.equals(PlayerRepository.Red)) "r" else ""
+      s"$resourcePath/tiles/${tile.char.toString.toLowerCase}/0$playerTag.png"
+    } else
+      s"$resourcePath/tiles/${tile.char.toString.toLowerCase}/0.png"
+  }
+
   def loadTileAsync(t: Tile, callback: HTMLImageElement => Unit): Unit = {
-
-    def getTileUrl(tile: TileRepository.Tile): String = {
-      if (tile.equals(VoidTile))
-        s"$resourcePath/tiles/dot/0.png"
-      else if (TileRepository.units.contains(tile)) {
-        val playerTag = if (tile.player.equals(PlayerRepository.Red)) "r" else ""
-        s"$resourcePath/tiles/${tile.char.toString.toLowerCase}/0$playerTag.png"
-      } else
-        s"$resourcePath/tiles/${tile.char.toString.toLowerCase}/0.png"
-    }
-
     if (imageCache.contains(t)) {
       callback(imageCache(t))
     } else {
       val image = dom.document.createElement("img").asInstanceOf[HTMLImageElement]
-      image.src = getTileUrl(t)
+      image.src = tileUrl(t)
       image.onload = (_: dom.Event) => {
         imageCache.put(t, image)
         callback(image)

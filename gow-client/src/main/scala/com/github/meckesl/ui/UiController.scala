@@ -12,29 +12,34 @@ import org.scalajs.dom.html.Canvas
 
 import scala.scalajs.js
 
-case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas, terrainCanvas: Canvas, unitCanvas: Canvas, overlayCanvas: Canvas, interfaceCanvas: Canvas) {
+case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas, terrainCanvas: Canvas, unitCanvas: Canvas, overlayCanvas: Canvas, info: InfoPanel) {
 
   private val uiBackground = new UiLayer(backgroundCanvas)
   private val uiCom = new UiLayer(comCanvas)
   private val uiTerrain = new UiLayer(terrainCanvas)
   private val uiUnits = new UiLayer(unitCanvas)
   private val uiOverlay = new UiLayer(overlayCanvas)
-  private val uiInterface = new UiLayer(interfaceCanvas)
+  private val layers = Seq(uiBackground, uiCom, uiTerrain, uiUnits, uiOverlay)
 
   /** Which side the local user may currently play for, and where their actions go. */
   var controls: Player => Boolean = _ => false
   var onAction: GameAction => Unit = _ => ()
   var onStateChange: () => Unit = () => ()
+  var onEvent: GameEvent => Unit = _ => ()
 
   private def myTurn: Boolean = controls(game.turnPlayer)
+  def canAct: Boolean = myTurn
+  def endTurn(): Unit = if (myTurn) onAction(GameAction.EndTurn)
 
   private var squareHover: Square = _
   private var squareClicked: Square = _
   private var squareSource: Square = _
 
-  def tileSize: Point = uiSize / new Point(RuleRepository.squareX, RuleRepository.squareY)
-  private var uiSize = new Point(terrainCanvas.width, terrainCanvas.height)
-  private var interfaceSize = new Point(interfaceCanvas.width, interfaceCanvas.height)
+  def tileSize: Point = uiTerrain.tileSize
+
+  private case class MoveAnimation(square: Int, from: Point, start: Double)
+  private var animation: Option[MoveAnimation] = None
+  private val animationMs = 240.0
 
   private val audioChannel1 = dom.document.createElement("audio").asInstanceOf[HTMLAudioElement]
   private val audioChannel2 = dom.document.createElement("audio").asInstanceOf[HTMLAudioElement]
@@ -44,21 +49,50 @@ case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas,
   audioChannel3.src = Loader.getSoundUrl("start")
   audioChannel3.play()
 
-  private def getGameSquare(p: Point): Square = {
-    val corrected = (p - (p % tileSize)) / tileSize
-    val index = corrected.toLinear(RuleRepository.squareX)
-    game.gameSquares(index)
+  info.clear()
+
+  private def getGameSquare(e: dom.MouseEvent): Square = {
+    val rect = overlayCanvas.getBoundingClientRect()
+    val x = ((e.clientX - rect.left) / tileSize.x).toInt.max(0).min(RuleRepository.squareX - 1)
+    val y = ((e.clientY - rect.top) / tileSize.y).toInt.max(0).min(RuleRepository.squareY - 1)
+    game.gameSquares(new Point(x, y).toLinear(RuleRepository.squareX))
   }
 
-  private def redraw(): Unit = {
+  private def now: Double = dom.window.performance.now()
+
+  private def unitPosition(sq: Square, time: Double): Point = animation match {
+    case Some(a) if a.square == sq.index =>
+      val t = ((time - a.start) / animationMs).min(1.0)
+      val eased = 1 - math.pow(1 - t, 3)
+      a.from + (sq.coords - a.from) * eased
+    case _ => sq.coords
+  }
+
+  private def drawUnits(): Unit = {
+    val time = now
     uiUnits.clearLayer()
     TileRepository.units.foreach(u => {
       Loader.loadTileAsync(u, image => {
         game.gameSquares.filter(_.unit.equals(u)).foreach(sq => {
-          uiUnits.tileUnit(sq, image)
+          uiUnits.tileUnit(sq, image, unitPosition(sq, time))
         })
       })
     })
+  }
+
+  private def animate(): Unit = {
+    drawUnits()
+    animation.foreach { a =>
+      if (now - a.start < animationMs) dom.window.requestAnimationFrame(_ => animate())
+      else {
+        animation = None
+        drawUnits()
+      }
+    }
+  }
+
+  private def redraw(): Unit = {
+    drawUnits()
     uiCom.clearLayer()
     game.gameSquares.foreach(sq => {
       uiCom.tileCommunication(sq)
@@ -76,33 +110,37 @@ case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas,
     squareSource = null
     squareClicked = null
     uiOverlay.clearLayer()
-    uiInterface.clearLayer()
-    redraw()
     event.foreach {
-      case GameEvent.Moved(_, to) => play(audioChannel2, Loader.getSoundUrl(game.gameSquares(to), "move"))
+      case GameEvent.Moved(from, to) =>
+        animation = Some(MoveAnimation(to, game.gameSquares(from).coords, now))
+        play(audioChannel2, Loader.getSoundUrl(game.gameSquares(to), "move"))
       case GameEvent.Attacked(from, _, result) if result > 0 => play(audioChannel2, Loader.getSoundUrl(game.gameSquares(from), "attack"))
-      case GameEvent.ArsenalTaken(_, to) => play(audioChannel2, Loader.getSoundUrl(game.gameSquares(to), "attack"))
+      case GameEvent.ArsenalTaken(from, to) =>
+        animation = Some(MoveAnimation(to, game.gameSquares(from).coords, now))
+        play(audioChannel2, Loader.getSoundUrl(game.gameSquares(to), "attack"))
       case _ =>
     }
+    redraw()
+    if (animation.nonEmpty) animate()
     if (event.nonEmpty && game.turnPlayer != previousTurn)
       play(audioChannel3, Loader.getSoundUrl("nextTurn"))
+    Option(squareHover).foreach { h =>
+      squareHover = null
+      hover(h)
+    }
+    event.foreach(onEvent)
     onStateChange()
   }
 
+  /** Lays the board out at `s` CSS pixels. */
   def onResize(s: Point): Unit = {
-    uiSize = s
-    Set(backgroundCanvas, comCanvas, terrainCanvas, unitCanvas, overlayCanvas).foreach(c=>{
-      c.width = uiSize.x.toInt
-      c.height = uiSize.y.toInt
-    })
-    interfaceSize = uiSize / 3
-    interfaceCanvas.width = interfaceSize.x.toInt
-    interfaceCanvas.height = interfaceSize.y.toInt
+    val ratio = dom.window.devicePixelRatio
+    layers.foreach(_.resize(s, ratio))
 
-    0 until RuleRepository.squareCount foreach uiBackground.tileBackground
+    uiBackground.boardGrid()
 
     uiTerrain.clearLayer()
-    TileRepository.terrains.foreach(t => {
+    TileRepository.terrains.filterNot(_.equals(VoidTile)).foreach(t => {
       Loader.loadTileAsync(t, image => {
         game.gameSquares.filter(_.terrain.equals(t)).foreach(sq => {
           uiTerrain.tileTerrain(sq, image)
@@ -112,87 +150,116 @@ case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas,
 
     redraw()
 
-    if (null != squareClicked) {
+    if (null != squareClicked)
       uiOverlay.tileUnitHighlight(squareClicked)
-      uiInterface.interfaceTileStatus(squareClicked)
+  }
+
+  private def showInfo(sq: Square): Unit = {
+    if (sq.unit != VoidTile || sq.terrain != VoidTile) info.showSquare(sq)
+    else if (null != squareClicked) info.showSquare(squareClicked)
+    else info.clear()
+  }
+
+  private def showMoveHints(sq: Square): Unit = {
+    if (myTurn && sq.canMove)
+      sq.inRange(sq.unit.speed).foreach { dest =>
+        if (sq.canMoveTo(dest)) uiOverlay.moveHint(dest, Color.Move)
+        else if (sq.canTakeArsenal(dest)) uiOverlay.moveHint(dest, Color.Arsenal)
+      }
+  }
+
+  private def hover(sq: Square): Unit = {
+    uiOverlay.clearLayer()
+    if (null != squareClicked && squareClicked != sq)
+      uiOverlay.tileUnitHighlight(squareClicked)
+    if (sq.isCurrentTurn) {
+      uiOverlay.tileUnitHighlight(sq)
+      sq.alliesInRange.foreach(uiOverlay.tileHighlight(_, Color.fromPlayer(sq.unit.player, 0.18)))
+      sq.targetsInAttackRange.foreach(uiOverlay.targetHint)
+      showMoveHints(sq)
     }
+    showInfo(sq)
+    squareHover = sq
+  }
+
+  private def drag(sq: Square): Unit = {
+    uiOverlay.clearLayer()
+    uiOverlay.tileUnitHighlight(squareSource)
+    showMoveHints(squareSource)
+    if (squareSource.canAttack(sq)) {
+      if (sq != squareHover)
+        play(audioChannel2, Loader.getSoundUrl(sq, "target"))
+      sq.canBeTargetOf.foreach(uiOverlay.tileHighlight(_, Color.fromPlayer(game.turnPlayer, 0.22)))
+      sq.alliesInRange.foreach(uiOverlay.tileHighlight(_, Color.fromPlayer(sq.unit.player, 0.22)))
+      uiOverlay.targetHint(sq)
+      info.showAttack(sq)
+    } else
+      info.showSquare(squareSource)
+    uiOverlay.drawActionArrow(squareSource, sq)
+    squareHover = sq
   }
 
   def onMousemove(e: dom.MouseEvent): Unit = {
-
-    val hoverSq = getGameSquare(new Point(e.clientX, e.clientY))
-
-    if (myTurn && hoverSq.canMove)
-      dom.document.body.style.cursor = "pointer"
-    else
-      dom.document.body.style.cursor = "default"
-
-    def onMousemoveHover(): Unit = {
-      uiOverlay.clearLayer()
-      uiInterface.clearLayer()
-      if (hoverSq.isCurrentTurn) {
-        uiOverlay.tileUnitHighlight(hoverSq)
-        hoverSq.alliesInRange.foreach(uiOverlay.tileHighlight(_, 0.1, Color.fromPlayer(game.turnPlayer)))
-        hoverSq.targetsInAttackRange.foreach(t => uiOverlay.tileHighlight(t, 0.1, Color.fromPlayer(t.unit.player)))
-        uiInterface.interfaceTileStatus(hoverSq)
-      }
-      squareHover = hoverSq
-    }
-
-    def onMousemoveDrag(): Unit = {
-      uiOverlay.clearLayer()
-      uiOverlay.tileUnitHighlight(squareSource)
-      uiOverlay.drawActionArrow(squareSource, hoverSq)
-      if (squareSource.canAttack(hoverSq)) {
-        audioChannel2.src = Loader.getSoundUrl(hoverSq, "target")
-        audioChannel2.play()
-        hoverSq.canBeTargetOf.foreach(
-          uiOverlay.tileHighlight(_, 0.1, Color.fromPlayer(game.turnPlayer)))
-        hoverSq.alliesInRange.foreach(
-          uiOverlay.tileHighlight(_, 0.1, Color.fromPlayer(hoverSq.unit.player)))
-        uiOverlay.tileHighlight(hoverSq, 0.3, Color.fromPlayer(hoverSq.unit.player))
-        uiInterface.interfaceAttackPanel(hoverSq)
-      }
-      squareHover = hoverSq
-    }
+    val hoverSq = getGameSquare(e)
+    overlayCanvas.style.cursor =
+      if (null != squareSource) "grabbing"
+      else if (myTurn && hoverSq.canMove) "grab"
+      else "default"
 
     if (null == squareSource || squareSource == hoverSq) {
       if (hoverSq != squareHover)
-        onMousemoveHover()
+        hover(hoverSq)
     } else
-      onMousemoveDrag()
+      drag(hoverSq)
+  }
 
+  def onMouseleave(): Unit = {
+    if (null == squareSource) {
+      squareHover = null
+      uiOverlay.clearLayer()
+      if (null != squareClicked) {
+        uiOverlay.tileUnitHighlight(squareClicked)
+        info.showSquare(squareClicked)
+      } else info.clear()
+    }
   }
 
   def onClick(e: dom.MouseEvent): Unit = {
     if (null != squareHover && squareHover.isCurrentTurn) {
       squareClicked = squareHover
-      uiOverlay.clearLayer()
       uiOverlay.tileUnitHighlight(squareClicked)
-      uiInterface.interfaceTileStatus(squareClicked)
+      info.showSquare(squareClicked)
     }
   }
 
   def onMouseup(e: dom.MouseEvent): Unit = {
-    if (null != squareSource && null != squareHover && myTurn) {
-      if (squareSource.canMoveTo(squareHover))
-        onAction(GameAction.Move(squareSource.index, squareHover.index))
-      else if (squareSource.canTakeArsenal(squareHover))
-        onAction(GameAction.TakeArsenal(squareSource.index, squareHover.index))
-      else if (squareSource.canAttack(squareHover))
-        onAction(GameAction.Attack(squareSource.index, squareHover.index))
-    }
+    val source = squareSource
     squareSource = null
+    if (null != source && null != squareHover && myTurn) {
+      if (source.canMoveTo(squareHover))
+        onAction(GameAction.Move(source.index, squareHover.index))
+      else if (source.canTakeArsenal(squareHover))
+        onAction(GameAction.TakeArsenal(source.index, squareHover.index))
+      else if (source.canAttack(squareHover))
+        onAction(GameAction.Attack(source.index, squareHover.index))
+    }
+    if (null != source) {
+      overlayCanvas.style.cursor = "default"
+      Option(squareHover).foreach { h =>
+        squareHover = null
+        hover(h)
+      }
+    }
   }
 
   def onMousedown(e: dom.MouseEvent): Unit = {
-    val mouse = new Point(e.clientX, e.clientY)
-    val curSq = getGameSquare(mouse)
+    val curSq = getGameSquare(e)
     if (myTurn && curSq.canMove) {
       audioChannel1.src = Loader.getSoundUrl(curSq, "select")
       audioChannel1.play()
-      squareSource = getGameSquare(mouse)
-      uiInterface.interfaceTileStatus(squareSource)
+      squareSource = curSq
+      overlayCanvas.style.cursor = "grabbing"
+      info.showSquare(squareSource)
     }
     else
       squareSource = null
@@ -203,6 +270,7 @@ case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas,
     val downloadGame = dom.KeyCode.D
     e.keyCode match {
       case `nextTurn` if myTurn =>
+        e.preventDefault()
         onAction(GameAction.EndTurn)
       case `downloadGame` =>
         downloadGameFile()
