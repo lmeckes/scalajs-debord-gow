@@ -1,8 +1,7 @@
 package com.github.meckesl
 
 import com.github.meckesl.io.Loader
-import com.github.meckesl.ui.UiController
-import com.github.meckesl.ws.LobbyClient
+import com.github.meckesl.ui.{LobbyView, UiController}
 import com.github.meckesl.{Game, Point}
 import org.scalajs.dom._
 import org.scalajs.dom.document._
@@ -22,12 +21,6 @@ object App {
     val overlayCanvas = getCanvas("overlayCanvas")
     val interfaceCanvas = getCanvas("interfaceCanvas")
 
-    val lobbyDiv = getElementById("lobby").asInstanceOf[html.Div]
-    val lobbyInput = getElementById("lobbyInput").asInstanceOf[html.Input]
-    val lobbyButton = getElementById("lobbyOk").asInstanceOf[html.Button]
-
-    val Lobby = new LobbyClient(lobbyDiv, lobbyInput, lobbyButton)
-
     Loader.getStartingGamePosition("init.board", "init.units", 25).foreach {
       _ =>
         val game = new Game
@@ -45,7 +38,10 @@ object App {
         overlayCanvas.onclick = (e: MouseEvent) => { uiController onClick e }
         overlayCanvas.onmouseup = (e: MouseEvent) => { uiController onMouseup e }
         overlayCanvas.onmousedown = (e: MouseEvent) => { uiController onMousedown e }
-        window.onkeydown = (e: KeyboardEvent) => { uiController onKeydown e }
+        window.onkeydown = (e: KeyboardEvent) => {
+          if (e.target.asInstanceOf[Element].tagName != "INPUT") uiController onKeydown e
+        }
+        new LobbyView(uiController, game)
 
     }
   }

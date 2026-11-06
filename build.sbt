@@ -1,10 +1,26 @@
-lazy val shared = project.in(file("gow-shared"))
+import sbtcrossproject.CrossPlugin.autoImport.{CrossType, crossProject}
+
+ThisBuild / scalaVersion := "2.13.16"
+
+lazy val shared = crossProject(JSPlatform, JVMPlatform)
+  .crossType(CrossType.Pure)
+  .in(file("gow-shared"))
+  .settings(
+    organization := "com.github.meckesl",
+    name := "gow-shared",
+    version := "0.1.0-SNAPSHOT",
+    scalacOptions ++= Seq("-feature", "-deprecation"),
+    libraryDependencies += "com.lihaoyi" %%% "upickle" % "3.3.1"
+  )
+
+lazy val sharedJS = shared.js
+lazy val sharedJVM = shared.jvm
 
 lazy val client = project.in(file("gow-client"))
-  .dependsOn(shared)
+  .dependsOn(sharedJS)
 
 lazy val server = project.in(file("gow-server"))
-  .dependsOn(shared)
+  .dependsOn(sharedJVM)
   .settings(
     inConfig(Compile)(Seq(
       resourceGenerators += Def.task {

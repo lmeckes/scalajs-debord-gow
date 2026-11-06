@@ -2,7 +2,9 @@ package com.github.meckesl.ui
 
 import com.github.meckesl.io.Loader
 import com.github.meckesl.repo.{RuleRepository, TileRepository}
-import com.github.meckesl.{Game, Point, Square}
+import com.github.meckesl.{Game, GameSnapshot, Point, Square}
+import com.github.meckesl.protocol.{GameAction, GameEvent, GameState}
+import com.github.meckesl.repo.PlayerRepository.Player
 import com.github.meckesl.repo.TileRepository.VoidTile
 import org.scalajs.dom
 import org.scalajs.dom.{Blob, BlobPropertyBag, HTMLAnchorElement, HTMLAudioElement, URL}
@@ -18,6 +20,13 @@ case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas,
   private val uiUnits = new UiLayer(unitCanvas)
   private val uiOverlay = new UiLayer(overlayCanvas)
   private val uiInterface = new UiLayer(interfaceCanvas)
+
+  /** Which side the local user may currently play for, and where their actions go. */
+  var controls: Player => Boolean = _ => false
+  var onAction: GameAction => Unit = _ => ()
+  var onStateChange: () => Unit = () => ()
+
+  private def myTurn: Boolean = controls(game.turnPlayer)
 
   private var squareHover: Square = _
   private var squareClicked: Square = _
@@ -56,6 +65,30 @@ case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas,
     })
   }
 
+  private def play(channel: HTMLAudioElement, url: String): Unit = {
+    channel.src = url
+    channel.play()
+  }
+
+  def showState(state: GameState, event: Option[GameEvent]): Unit = {
+    val previousTurn = game.turnPlayer
+    GameSnapshot.applyTo(state, game)
+    squareSource = null
+    squareClicked = null
+    uiOverlay.clearLayer()
+    uiInterface.clearLayer()
+    redraw()
+    event.foreach {
+      case GameEvent.Moved(_, to) => play(audioChannel2, Loader.getSoundUrl(game.gameSquares(to), "move"))
+      case GameEvent.Attacked(from, _, result) if result > 0 => play(audioChannel2, Loader.getSoundUrl(game.gameSquares(from), "attack"))
+      case GameEvent.ArsenalTaken(_, to) => play(audioChannel2, Loader.getSoundUrl(game.gameSquares(to), "attack"))
+      case _ =>
+    }
+    if (event.nonEmpty && game.turnPlayer != previousTurn)
+      play(audioChannel3, Loader.getSoundUrl("nextTurn"))
+    onStateChange()
+  }
+
   def onResize(s: Point): Unit = {
     uiSize = s
     Set(backgroundCanvas, comCanvas, terrainCanvas, unitCanvas, overlayCanvas).foreach(c=>{
@@ -89,7 +122,7 @@ case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas,
 
     val hoverSq = getGameSquare(new Point(e.clientX, e.clientY))
 
-    if (hoverSq.canMove)
+    if (myTurn && hoverSq.canMove)
       dom.document.body.style.cursor = "pointer"
     else
       dom.document.body.style.cursor = "default"
@@ -132,7 +165,7 @@ case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas,
   }
 
   def onClick(e: dom.MouseEvent): Unit = {
-    if (squareHover.isCurrentTurn) {
+    if (null != squareHover && squareHover.isCurrentTurn) {
       squareClicked = squareHover
       uiOverlay.clearLayer()
       uiOverlay.tileUnitHighlight(squareClicked)
@@ -141,33 +174,13 @@ case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas,
   }
 
   def onMouseup(e: dom.MouseEvent): Unit = {
-    if (null != squareSource) {
-      if (squareSource.canMoveTo(squareHover)) {
-        audioChannel2.src = Loader.getSoundUrl(squareSource, "move")
-        audioChannel2.play()
-        squareSource.moveUnitTo(squareHover)
-        redraw()
-        if (game.turnMovedUnits.isEmpty) {
-          audioChannel3.src = Loader.getSoundUrl("nextTurn")
-          audioChannel3.play()
-        }
-      } else if (squareSource.canTakeArsenal(squareHover)) {
-        squareSource.takeArsenal(squareHover)
-        audioChannel2.src = Loader.getSoundUrl(squareHover, "attack")
-        audioChannel2.play()
-        redraw()
-        audioChannel3.src = Loader.getSoundUrl("nextTurn")
-        audioChannel3.play()
-      } else if (squareSource.canAttack(squareHover)) {
-        val attackResult = squareHover.launchAttackOn()
-        if (attackResult == 2 || attackResult == 1) {
-          audioChannel2.src = Loader.getSoundUrl(squareSource, "attack")
-          audioChannel2.play()
-          redraw()
-          audioChannel3.src = Loader.getSoundUrl("nextTurn")
-          audioChannel3.play()
-        }
-      }
+    if (null != squareSource && null != squareHover && myTurn) {
+      if (squareSource.canMoveTo(squareHover))
+        onAction(GameAction.Move(squareSource.index, squareHover.index))
+      else if (squareSource.canTakeArsenal(squareHover))
+        onAction(GameAction.TakeArsenal(squareSource.index, squareHover.index))
+      else if (squareSource.canAttack(squareHover))
+        onAction(GameAction.Attack(squareSource.index, squareHover.index))
     }
     squareSource = null
   }
@@ -175,7 +188,7 @@ case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas,
   def onMousedown(e: dom.MouseEvent): Unit = {
     val mouse = new Point(e.clientX, e.clientY)
     val curSq = getGameSquare(mouse)
-    if (curSq.canMove) {
+    if (myTurn && curSq.canMove) {
       audioChannel1.src = Loader.getSoundUrl(curSq, "select")
       audioChannel1.play()
       squareSource = getGameSquare(mouse)
@@ -189,11 +202,8 @@ case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas,
     val nextTurn = dom.KeyCode.Space
     val downloadGame = dom.KeyCode.D
     e.keyCode match {
-      case `nextTurn` =>
-        game.nextTurn()
-        redraw()
-        audioChannel3.src = Loader.getSoundUrl("nextTurn")
-        audioChannel3.play()
+      case `nextTurn` if myTurn =>
+        onAction(GameAction.EndTurn)
       case `downloadGame` =>
         downloadGameFile()
       case _ =>

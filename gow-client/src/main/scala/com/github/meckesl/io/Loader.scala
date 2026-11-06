@@ -1,7 +1,7 @@
 package com.github.meckesl.io
 
-import com.github.meckesl.Square
-import com.github.meckesl.repo.{PlayerRepository, RuleRepository, TileRepository}
+import com.github.meckesl.{BoardLoader, Square}
+import com.github.meckesl.repo.{PlayerRepository, TileRepository}
 import com.github.meckesl.repo.TileRepository.{Tile, VoidTile}
 import org.scalajs.dom
 import org.scalajs.dom._
@@ -50,51 +50,25 @@ object Loader {
 
   def getStartingGamePosition(boardFile: String, unitFile: String, xWidth: Int): Future[Boolean] = {
 
-    def getResUrl(res: String): String = {
-      s"$resourcePath/$res"
-    }
-
-    def loadInitialBoardPosition(file: String): Future[Seq[Tile]] = {
-      val promise: Promise[Seq[Tile]] = Promise()
+    def fetch(file: String): Future[String] = {
+      val promise: Promise[String] = Promise()
       val xhr = new XMLHttpRequest()
-      xhr.open("GET", getResUrl(file))
-      xhr.onload = {
-        (_: Event) =>
-          if (xhr.status == 200) {
-            promise.success(
-              xhr.responseText
-                .filter(TileRepository.all.map(_.char).contains(_))
-                .map(TileRepository.getByChar))
-          }
-          else
-            promise.failure(new RuntimeException("cannot read tiles"))
+      xhr.open("GET", s"$resourcePath/$file")
+      xhr.onload = { (_: Event) =>
+        if (xhr.status == 200) promise.success(xhr.responseText)
+        else promise.failure(new RuntimeException(s"cannot read $file"))
       }
       xhr.send()
       promise.future
     }
 
-    val loaded: Promise[Boolean] = Promise()
-    loadInitialBoardPosition(boardFile) foreach {
-      tilesT: Seq[Tile] => {
-        RuleRepository.startingTerrain = tilesT.map(t => {
-          if (TileRepository.terrains.contains(t)) t else VoidTile
-        })
-        loadInitialBoardPosition(unitFile) foreach {
-          tilesU: Seq[Tile] => {
-            RuleRepository.startingUnits = tilesU.map(u => {
-              if (TileRepository.units.contains(u)) u else VoidTile
-            })
-
-            RuleRepository.squareX = xWidth
-            RuleRepository.squareY = RuleRepository.startingTerrain.size / xWidth
-
-            loaded.success(true)
-          }
-        }
-      }
+    for {
+      board <- fetch(boardFile)
+      units <- fetch(unitFile)
+    } yield {
+      BoardLoader.load(board, units, xWidth)
+      true
     }
-
-    loaded.future
   }
 
 }

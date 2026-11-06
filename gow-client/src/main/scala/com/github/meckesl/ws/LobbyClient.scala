@@ -1,51 +1,51 @@
 package com.github.meckesl.ws
 
+import com.github.meckesl.protocol.{ClientMsg, ServerMsg}
 import org.scalajs.dom
-import org.scalajs.dom.{Event, HTMLButtonElement, HTMLDivElement, HTMLInputElement, HTMLSpanElement, MessageEvent, WebSocket}
+import org.scalajs.dom.{CloseEvent, Event, MessageEvent, WebSocket}
+import upickle.default.{read, write}
 
-class LobbyClient(div : HTMLDivElement, input: HTMLInputElement, send: HTMLButtonElement) {
+import scala.scalajs.js.timers.setTimeout
+import scala.util.Try
 
-  private val connection = {
+/** JSON lobby connection to the server that served the page; reconnects automatically. */
+class LobbyClient(onOpen: () => Unit, onMessage: ServerMsg => Unit, onClosed: () => Unit) {
+
+  private var connection: WebSocket = _
+  private var retryDelay = 1000
+  private var stopped = false
+
+  private def url: String = {
     val location = dom.window.location
     val scheme = if (location.protocol == "https:") "wss" else "ws"
-    new WebSocket(s"$scheme://${location.host}/lobby")
+    s"$scheme://${location.host}/lobby"
   }
 
-  input.onkeydown = (e: dom.KeyboardEvent) => {
-    println("lobby message")
-    if (e.keyCode == dom.KeyCode.Enter) {
-      e.preventDefault()
-      sendMessage(input.value)
-      input.value = ""
+  private def connect(): Unit = {
+    connection = new WebSocket(url)
+    connection.onopen = (_: Event) => {
+      retryDelay = 1000
+      onOpen()
+    }
+    connection.onmessage = (e: MessageEvent) => {
+      Try(read[ServerMsg](e.data.toString)).foreach(onMessage)
+    }
+    connection.onclose = (_: CloseEvent) => {
+      if (!stopped) {
+        onClosed()
+        setTimeout(retryDelay)(connect())
+        retryDelay = (retryDelay * 2).min(10000)
+      }
     }
   }
 
-  send.onclick = (e: dom.MouseEvent) => {
-    sendMessage(input.value)
-    input.value = ""
+  def send(msg: ClientMsg): Unit =
+    if (connection != null && connection.readyState == 1) connection.send(write(msg))
+
+  def stop(): Unit = {
+    stopped = true
+    connection.close()
   }
 
-  connection.onopen = (event: Event) => {
-    output("WebSocket connection established")
-  }
-
-  connection.onerror = (event: Event) => {
-    output(s"WebSocket error observed: ${event.toString}")
-  }
-
-  connection.onmessage = (messageEvent: MessageEvent) => {
-    output(s"Received from server: ${messageEvent.data.toString}")
-  }
-
-  connection.onclose = (event: Event) => {
-    output("WebSocket connection closed")
-  }
-
-  private def sendMessage(message: String): Unit = {
-    connection.send(message)
-  }
-
-  private def output(s: String): Unit = div.innerHTML += s"$s<br/>"
-
+  connect()
 }
-

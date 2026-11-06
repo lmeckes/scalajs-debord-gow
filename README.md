@@ -2,9 +2,9 @@
 
 ## Usage
 
-Run client tests 
+Run client and server tests
 ```sh
-sbt client/test
+sbt client/test server/test
 ```
 
 Generates client Javascript files ready to be run in the browser (optimized)
@@ -12,10 +12,22 @@ Generates client Javascript files ready to be run in the browser (optimized)
 sbt client/fullOptJS
 ```
 
-Run server
+Run server (serves the game and the online lobby on http://localhost:8080/)
 ```sh
 sbt server/run
 ```
+
+The server listens on all interfaces; set `PORT` (and optionally `HOST`) to change the bind address.
+
+### Online play
+
+Open the page, pick a nickname and either:
+- **Quick match**: you are paired with the next player who also clicks Quick match.
+- **Private game**: you get a code and a link to share with a friend.
+- **Play locally**: both sides on the same screen.
+
+The server referees every move. If you reload or lose connection you rejoin your game automatically;
+a player who stays away for 2 minutes forfeits. Nicknames, lobby and games live in memory only.
 
 ## Screenshot
 
