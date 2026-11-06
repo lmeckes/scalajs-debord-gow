@@ -17,6 +17,23 @@
             -moz-background-size: cover;
             -o-background-size: cover;
         }
+        #panel {
+            position: absolute; top: 10px; right: 10px; z-index: 999; width: 280px;
+            max-height: calc(100vh - 20px); overflow-y: auto;
+            background: rgba(20, 20, 20, 0.85); color: #eee; padding: 10px; border-radius: 6px;
+            font: 13px sans-serif;
+        }
+        #panel h4 { margin: 10px 0 4px; }
+        #panel ul { margin: 0; padding-left: 18px; }
+        #panel input[type=text] { width: 150px; }
+        #panel button { margin: 2px 0; }
+        #panel .row { margin: 6px 0; }
+        #connStatus { color: #f88; }
+        #gameStatus { font-weight: bold; margin: 6px 0; }
+        #opponentStatus { color: #f88; }
+        #shareLink { width: 100% !important; box-sizing: border-box; }
+        #chatLog { height: 120px; overflow-y: auto; background: rgba(0, 0, 0, 0.4); padding: 4px; margin-bottom: 4px; }
+        #chatInput { width: 100% !important; box-sizing: border-box; }
     </style>
 </head>
 <body>
@@ -26,7 +43,36 @@
 <canvas id="unitCanvas" class="c top"></canvas>
 <canvas id="overlayCanvas" class="c top"></canvas>
 <canvas id="interfaceCanvas" class="c bottom"></canvas>
-<div id="lobby" class="c bottom" style="z-index: 999"><input type="text" id="lobbyInput"><input type="button" id="lobbyOk" value="ok"></div>
+<div id="panel">
+    <div id="connStatus">Connecting...</div>
+    <div id="loginView" style="display: none">
+        <h4>Choose a nickname</h4>
+        <input type="text" id="nameInput" maxlength="20"> <button id="loginBtn">Enter lobby</button>
+    </div>
+    <div id="lobbyView" style="display: none">
+        <div class="row">Playing as <b id="meName"></b> <button id="renameBtn">change</button></div>
+        <div class="row"><button id="quickBtn">Quick match</button> <button id="privateBtn">Private game</button></div>
+        <div class="row"><input type="text" id="codeInput" placeholder="Game code" maxlength="5"> <button id="joinBtn">Join</button></div>
+        <div class="row"><button id="localBtn">Play locally (same screen)</button></div>
+        <div id="searchStatus"></div>
+        <input type="text" id="shareLink" readonly>
+        <button id="cancelBtn">Cancel</button>
+        <h4>Online</h4>
+        <ul id="playerList"></ul>
+        <h4>Games in progress</h4>
+        <ul id="gameList"></ul>
+    </div>
+    <div id="gameView">
+        <div id="gameTitle"></div>
+        <div id="gameStatus"></div>
+        <div id="opponentStatus"></div>
+        <button id="resignBtn">Resign</button>
+        <button id="leaveBtn">Back to lobby</button>
+    </div>
+    <h4>Chat</h4>
+    <div id="chatLog"></div>
+    <input type="text" id="chatInput" placeholder="Say something">
+</div>
 <script type="text/javascript" src="target/scala-2.13/gow-client-opt.js"></script>
 </body>
 </html>

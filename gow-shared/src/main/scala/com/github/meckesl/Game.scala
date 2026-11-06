@@ -34,6 +34,19 @@ class Game {
       turnPlayer = Red
   }
 
+  /** A side loses when it has no arsenal left or no fighting (non-communication) unit left. */
+  def winner: Option[Player] = {
+    def defeated(pl: Player) = {
+      val units = gameSquares.map(_.unit).filter(_.player == pl)
+      !units.exists(u => u == RedArsenal || u == BlueArsenal) || !units.exists(!_.isCom)
+    }
+    (defeated(Red), defeated(Blue)) match {
+      case (true, false) => Some(Blue)
+      case (false, true) => Some(Red)
+      case _ => None
+    }
+  }
+
   def refreshComLayer(): Unit = {
 
     def terrainBlocks(sq: Square) = sq.terrain.equals(Mountain)

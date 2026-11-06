@@ -20,7 +20,7 @@ jobs:
         java-version: "adopt@1.11.0-11"  # ou "adopt@1.11.0-11" si nécessaire
 
     - name: Run tests
-      run: sbt client/test
+      run: sbt client/test server/test
 
     - name: Generate artifact
       run: sbt client/fullOptJS
