@@ -2,13 +2,14 @@ package com.github.meckesl.ui
 
 import com.github.meckesl.{Game, GameEngine, GameSnapshot}
 import com.github.meckesl.protocol.ClientMsg._
-import com.github.meckesl.protocol.ServerMsg
+import com.github.meckesl.protocol.{GameEvent, ServerMsg}
+import com.github.meckesl.repo.RuleRepository
 import com.github.meckesl.protocol.ServerMsg._
 import com.github.meckesl.ws.LobbyClient
 import org.scalajs.dom
 import org.scalajs.dom.{html, Event, KeyboardEvent}
 
-import scala.scalajs.js.timers.setInterval
+import scala.scalajs.js.timers.{clearTimeout, setInterval, setTimeout, SetTimeoutHandle}
 
 /** Lobby, matchmaking and in-game panel; drives the board from server messages. */
 class LobbyView(ui: UiController, game: Game) {
@@ -35,6 +36,13 @@ class LobbyView(ui: UiController, game: Game) {
   private val opponentStatus = el[html.Div]("opponentStatus")
   private val resignBtn = el[html.Button]("resignBtn")
   private val leaveBtn = el[html.Button]("leaveBtn")
+  private val endTurnBtn = el[html.Button]("endTurnBtn")
+  private val meAvatar = el[html.Element]("meAvatar")
+  private val turnDot = el[html.Element]("turnDot")
+  private val movePips = el[html.Div]("movePips")
+  private val movesLabel = el[html.Div]("movesLabel")
+  private val toast = el[html.Div]("toast")
+  private var toastTimer: Option[SetTimeoutHandle] = None
   private val chatLog = el[html.Div]("chatLog")
   private val chatInput = el[html.Input]("chatInput")
 
@@ -92,10 +100,41 @@ class LobbyView(ui: UiController, game: Game) {
     shareLink.value = link.getOrElse("")
   }
 
-  private def li(text: String): html.LI = {
+  private def li(text: String, cls: String = ""): html.LI = {
     val item = dom.document.createElement("li").asInstanceOf[html.LI]
     item.textContent = text
+    item.className = cls
     item
+  }
+
+  private def span(text: String, cls: String): html.Span = {
+    val s = dom.document.createElement("span").asInstanceOf[html.Span]
+    s.textContent = text
+    s.className = cls
+    s
+  }
+
+  private def playerItem(name: String, status: String): html.LI = {
+    val item = li("")
+    item.appendChild(span("", if (status == "idle") "status-dot" else "status-dot busy"))
+    item.appendChild(span(name, ""))
+    item.appendChild(span(status, "pill-status"))
+    item
+  }
+
+  private def gameItem(red: String, blue: String): html.LI = {
+    val item = li("")
+    item.appendChild(span(red, "team-name red"))
+    item.appendChild(span("vs", "vs-small"))
+    item.appendChild(span(blue, "team-name blue"))
+    item
+  }
+
+  private def showToast(text: String): Unit = {
+    toast.textContent = text
+    toast.classList.add("show")
+    toastTimer.foreach(clearTimeout)
+    toastTimer = Some(setTimeout(2200)(toast.classList.remove("show")))
   }
 
   private def renderGame(): Unit = {
@@ -104,11 +143,21 @@ class LobbyView(ui: UiController, game: Game) {
       if (local) "Local game"
       else colour.map(c => s"You play ${colourName(c)} against ${names.getOrElse(if (c == 'r') 'b' else 'r', "?")}").getOrElse("")
     gameStatus.textContent = result.getOrElse {
-      val moves = s"${game.turnRemainingMoves} moves left, Space ends the turn"
-      if (local) s"${colourName(turn)} to play: $moves"
-      else if (colour.contains(turn)) s"Your turn: $moves"
+      if (local) s"${colourName(turn)} to play"
+      else if (colour.contains(turn)) "Your turn"
       else s"${names.getOrElse(turn, "Opponent")} is playing..."
     }
+    turnDot.className = if (result.isEmpty) turn.toString else ""
+    movePips.className = turn.toString
+    movePips.innerHTML = ""
+    if (result.isEmpty)
+      (0 until RuleRepository.turnMoves).foreach { i =>
+        movePips.appendChild(span("", if (i < game.turnRemainingMoves) "on" else ""))
+      }
+    movesLabel.textContent = if (result.isEmpty) s"${game.turnRemainingMoves} of ${RuleRepository.turnMoves} moves left" else ""
+    if (result.isEmpty) dom.document.body.setAttribute("data-turn", turn.toString)
+    else dom.document.body.removeAttribute("data-turn")
+    show(endTurnBtn, result.isEmpty && ui.canAct)
     opponentStatus.textContent = opponentDeadline.filter(_ => result.isEmpty).map { deadline =>
       val secs = ((deadline - System.currentTimeMillis()) / 1000).toInt.max(0)
       s"Opponent disconnected, they forfeit in ${secs}s"
@@ -149,6 +198,7 @@ class LobbyView(ui: UiController, game: Game) {
   private def leaveGame(): Unit = {
     inGame = false
     ui.controls = _ => false
+    dom.document.body.removeAttribute("data-turn")
     showLobby()
   }
 
@@ -172,6 +222,7 @@ class LobbyView(ui: UiController, game: Game) {
       tabStorage.setItem("gow.token", token)
       storage.setItem("gow.name", name)
       meName.textContent = name
+      meAvatar.textContent = name.take(1).toUpperCase
       showLobby()
       joinCodeFromUrl().foreach { code =>
         dom.window.history.replaceState(null, "", dom.window.location.pathname)
@@ -180,10 +231,10 @@ class LobbyView(ui: UiController, game: Game) {
 
     case LobbyUpdate(players, games) =>
       playerList.innerHTML = ""
-      players.foreach(p => playerList.appendChild(li(s"${p.name} (${p.status})")))
+      players.foreach(p => playerList.appendChild(playerItem(p.name, p.status)))
       gameList.innerHTML = ""
-      if (games.isEmpty) gameList.appendChild(li("none"))
-      games.foreach(g => gameList.appendChild(li(s"${g.red} (Red) vs ${g.blue} (Blue)")))
+      if (games.isEmpty) gameList.appendChild(li("No games right now", "empty"))
+      games.foreach(g => gameList.appendChild(gameItem(g.red, g.blue)))
 
     case ChatMessage(from, text) => appendChat(from, text)
 
@@ -222,6 +273,14 @@ class LobbyView(ui: UiController, game: Game) {
   }
 
   ui.onStateChange = () => renderGame()
+  ui.onEvent = {
+    case GameEvent.Attacked(_, _, 2) => showToast("Attack succeeded: unit destroyed")
+    case GameEvent.Attacked(_, _, 1) => showToast("Attack succeeded: unit must retreat")
+    case GameEvent.Attacked(_, _, _) => showToast("Attack repelled")
+    case GameEvent.ArsenalTaken(_, _) => showToast("Arsenal captured")
+    case _ =>
+  }
+  endTurnBtn.onclick = (_: Event) => ui.endTurn()
 
   el[html.Button]("loginBtn").onclick = (_: Event) => login()
   nameInput.onkeydown = (e: KeyboardEvent) => if (e.key == "Enter") login()
