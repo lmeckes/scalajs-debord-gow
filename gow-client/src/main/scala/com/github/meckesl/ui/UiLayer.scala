@@ -4,6 +4,7 @@ import com.github.meckesl.repo.CardinalityRepository._
 import com.github.meckesl.repo.{CardinalityRepository, RuleRepository}
 import com.github.meckesl.{Point, Square}
 import com.github.meckesl.repo.PlayerRepository.Neutral
+import com.github.meckesl.repo.TileRepository.Mountain
 import org.scalajs.dom
 import org.scalajs.dom.html.Canvas
 import org.scalajs.dom.HTMLImageElement
@@ -104,8 +105,31 @@ class UiLayer(canvas: Canvas) {
     val t = tileSize
     l.save()
     shadow(Color.Shadow, t.x * 0.12, t.x * 0.04, t.y * 0.06)
-    drawFitted(image, sq.coords * t, t, 1.0)
+    if (sq.terrain == Mountain) drawMountain(sq, image)
+    else drawFitted(image, sq.coords * t, t, 1.0)
     l.restore()
+  }
+
+  /** Stable per-square pseudo-random value in [0, 1). */
+  private def noise(seed: Int, k: Int): Double = {
+    var h = seed * 374761393 + k * 668265263
+    h = (h ^ (h >>> 13)) * 1274126177
+    ((h ^ (h >>> 16)) & 0xffff) / 65536.0
+  }
+
+  /** Mountains get a unique flip, tilt, size, offset and shade so ridges don't look stamped. */
+  private def drawMountain(sq: Square, image: HTMLImageElement): Unit = {
+    val t = tileSize
+    def r(k: Int) = noise(sq.index, k)
+    val fit = math.min(t.x / image.naturalWidth, t.y / image.naturalHeight) * (0.9 + r(1) * 0.3)
+    val (w, h) = (image.naturalWidth * fit, image.naturalHeight * fit)
+    l.translate(
+      sq.coords.x * t.x + t.x / 2 + (r(2) - 0.5) * t.x * 0.22,
+      sq.coords.y * t.y + t.y * 0.97 + (r(3) - 0.5) * t.y * 0.12)
+    l.rotate((r(4) - 0.5) * 0.22)
+    l.scale(if (r(5) < 0.5) -1 else 1, 0.85 + r(6) * 0.3)
+    l.asInstanceOf[js.Dynamic].filter = f"brightness(${0.88 + r(7) * 0.2}%.2f) hue-rotate(${(r(8) - 0.5) * 12}%.1fdeg)"
+    l.drawImage(image, -w / 2, -h, w, h)
   }
 
   private def hasUnitMovedEastwards(sq: Square) =
