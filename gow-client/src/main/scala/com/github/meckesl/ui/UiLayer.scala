@@ -4,7 +4,7 @@ import com.github.meckesl.repo.CardinalityRepository._
 import com.github.meckesl.repo.{CardinalityRepository, RuleRepository}
 import com.github.meckesl.{Point, Square}
 import com.github.meckesl.repo.PlayerRepository.Neutral
-import com.github.meckesl.repo.TileRepository.Mountain
+import com.github.meckesl.repo.TileRepository.{Fortress, Mountain}
 import org.scalajs.dom
 import org.scalajs.dom.html.Canvas
 import org.scalajs.dom.HTMLImageElement
@@ -104,10 +104,137 @@ class UiLayer(canvas: Canvas) {
   def tileTerrain(sq: Square, image: HTMLImageElement): Unit = {
     val t = tileSize
     l.save()
-    shadow(Color.Shadow, t.x * 0.12, t.x * 0.04, t.y * 0.06)
-    if (sq.terrain == Mountain) drawMountain(sq, image)
-    else drawFitted(image, sq.coords * t, t, 1.0)
+    if (sq.terrain == Fortress) drawFortress(sq)
+    else {
+      shadow(Color.Shadow, t.x * 0.12, t.x * 0.04, t.y * 0.06)
+      if (sq.terrain == Mountain) drawMountain(sq, image)
+      else drawFitted(image, sq.coords * t, t, 1.0)
+    }
     l.restore()
+  }
+
+  private type Pt = (Double, Double)
+
+  private def polygon(ps: Seq[Pt]): Unit = {
+    l.beginPath()
+    l.moveTo(ps.head._1, ps.head._2)
+    ps.tail.foreach(p => l.lineTo(p._1, p._2))
+    l.closePath()
+  }
+
+  private def ellipse(x: Double, y: Double, rx: Double, ry: Double): Unit = {
+    l.save()
+    l.translate(x, y)
+    l.scale(1, ry / rx)
+    l.beginPath()
+    l.arc(0, 0, rx, 0, 2 * math.Pi)
+    l.restore()
+  }
+
+  private def stone(f: Double): String =
+    s"rgb(${(196 * f).toInt.min(255)}, ${(184 * f).toInt.min(255)}, ${(158 * f).toInt.min(255)})"
+
+  /** Hexagonal fort seen from the same raised 3/4 view as units and mountains: walls with height,
+    * a sunken courtyard, crenellations and corner towers, painted back to front. */
+  private def drawFortress(sq: Square): Unit = {
+    val t = tileSize
+    val cx = sq.coords.x * t.x + t.x / 2
+    val cy = sq.coords.y * t.y + t.y * 0.62
+    val rx = t.x * 0.40
+    val ry = rx * 0.55
+    val wall = t.y * 0.13
+    val inner = 0.74
+    val towerR = t.x * 0.08
+    val towerH = wall * 1.5
+    val outline = "rgba(45, 38, 26, 0.6)"
+    l.lineWidth = math.max(0.6, t.x * 0.018)
+    l.lineJoin = "round"
+
+    val corners = (0 until 6).map(_ * math.Pi / 3)
+    def pt(a: Double, scale: Double, lift: Double): Pt =
+      (cx + math.cos(a) * rx * scale, cy + math.sin(a) * ry * scale - lift)
+    def lerp(p: Pt, q: Pt, k: Double): Pt = (p._1 + (q._1 - p._1) * k, p._2 + (q._2 - p._2) * k)
+    val edges = corners.map(a => (a, a + math.Pi / 3))
+    val (front, back) = edges.partition { case (a, _) => math.sin(a + math.Pi / 6) > 0 }
+    def paint(fill: String): Unit = { l.fillStyle = fill; l.fill(); l.strokeStyle = outline; l.stroke() }
+
+    ellipse(cx + rx * 0.1, cy + ry * 0.3, rx * 1.2, ry * 1.25)
+    l.fillStyle = "rgba(20, 16, 10, 0.32)"
+    l.fill()
+    polygon(corners.map(pt(_, 1.16, 0)))
+    l.fillStyle = "rgba(96, 88, 58, 0.55)"
+    l.fill()
+
+    polygon(corners.map(pt(_, inner, 0)))
+    paint("rgb(104, 110, 70)")
+    back.foreach { case (a, b) =>
+      polygon(Seq(pt(a, inner, 0), pt(b, inner, 0), pt(b, inner, wall), pt(a, inner, wall)))
+      paint(stone(0.9))
+    }
+    edges.foreach { case (a, b) =>
+      polygon(Seq(pt(a, 1, wall), pt(b, 1, wall), pt(b, inner, wall), pt(a, inner, wall)))
+      paint(stone(1.12))
+    }
+    front.foreach { case (a, b) =>
+      val shade = 0.82 - 0.16 * math.cos(a + math.Pi / 6)
+      polygon(Seq(pt(a, 1, 0), pt(b, 1, 0), pt(b, 1, wall), pt(a, 1, wall)))
+      paint(stone(shade))
+      l.beginPath()
+      Seq(0.35, 0.68).foreach { h =>
+        val (p, q) = (pt(a, 1, wall * h), pt(b, 1, wall * h))
+        l.moveTo(p._1, p._2)
+        l.lineTo(q._1, q._2)
+      }
+      l.strokeStyle = "rgba(60, 50, 35, 0.22)"
+      l.stroke()
+      val merlons = 3
+      (0 until merlons).foreach { k =>
+        val (p0, p1) = (pt(a, 1, wall), pt(b, 1, wall))
+        val s0 = (k + 0.3) / merlons
+        val s1 = (k + 0.7) / merlons
+        val (m0, m1) = (lerp(p0, p1, s0), lerp(p0, p1, s1))
+        val up = wall * 0.32
+        polygon(Seq(m0, m1, (m1._1, m1._2 - up), (m0._1, m0._2 - up)))
+        paint(stone(shade + 0.08))
+      }
+    }
+
+    corners.sortBy(math.sin).foreach { a =>
+      val (x, y) = pt(a, 1, 0)
+      val body = l.createLinearGradient(x - towerR, 0, x + towerR, 0)
+      body.addColorStop(0, stone(1.1))
+      body.addColorStop(0.45, stone(0.95))
+      body.addColorStop(1, stone(0.62))
+      l.beginPath()
+      l.moveTo(x - towerR, y - towerH)
+      l.lineTo(x - towerR, y)
+      l.save()
+      l.translate(x, y)
+      l.scale(1, 0.55)
+      l.arc(0, 0, towerR, math.Pi, 0, true)
+      l.restore()
+      l.lineTo(x + towerR, y - towerH)
+      l.closePath()
+      l.fillStyle = body
+      l.fill()
+      l.strokeStyle = outline
+      l.stroke()
+      ellipse(x, y - towerH, towerR, towerR * 0.55)
+      paint(stone(1.18))
+      ellipse(x, y - towerH, towerR * 0.6, towerR * 0.33)
+      l.fillStyle = "rgb(92, 82, 62)"
+      l.fill()
+    }
+
+    val (fx, fy) = pt(-math.Pi / 2, 1, towerH)
+    val pole = t.y * 0.2
+    l.beginPath()
+    l.moveTo(fx, fy)
+    l.lineTo(fx, fy - pole)
+    l.strokeStyle = "rgb(70, 58, 40)"
+    l.stroke()
+    polygon(Seq((fx, fy - pole), (fx + t.x * 0.14, fy - pole * 0.82), (fx, fy - pole * 0.62)))
+    paint("rgb(232, 222, 196)")
   }
 
   /** Stable per-square pseudo-random value in [0, 1). */
