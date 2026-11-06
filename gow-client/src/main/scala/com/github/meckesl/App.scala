@@ -31,7 +31,7 @@ object App {
         import scala.scalajs.js.timers._
         // Square tiles, as large as the space next to the side panel allows.
         def layout(): Unit = {
-          val margin = 2
+          val margin = 0
           val tile = math.max(8, math.floor(4 * math.min(
             (boardWrap.clientWidth - margin * 2).toDouble / RuleRepository.squareX,
             (boardWrap.clientHeight - margin * 2).toDouble / RuleRepository.squareY)) / 4)

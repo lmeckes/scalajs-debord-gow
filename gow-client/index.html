@@ -66,7 +66,7 @@
         #connStatus:empty { display: none; }
 
         /* Main layout */
-        main { flex: 1; display: flex; min-height: 0; }
+        main { flex: 1; display: flex; gap: 16px; padding: 12px 20px 16px; min-height: 0; }
         #boardWrap { flex: 1; position: relative; min-width: 0; display: grid; place-items: center; }
         #board {
             position: relative; border-radius: 6px; overflow: hidden;
@@ -81,7 +81,7 @@
 
         /* Side panel */
         #panel {
-            width: 340px; flex-shrink: 0; overflow-y: auto; padding: 16px 16px 16px 0;
+            width: 340px; flex-shrink: 0; overflow-y: auto; padding: 0;
             display: flex; flex-direction: column; gap: 12px;
         }
         .card {
@@ -316,7 +316,7 @@
             #app { height: auto; min-height: 100vh; }
             main { flex-direction: column; }
             #boardWrap { height: auto; aspect-ratio: 5 / 4; max-height: 80vh; }
-            #panel { width: auto; padding: 0 16px 16px; overflow: visible; }
+            #panel { width: auto; padding: 0; overflow: visible; }
             .topbar-right .keys { display: none; }
         }
     </style>
