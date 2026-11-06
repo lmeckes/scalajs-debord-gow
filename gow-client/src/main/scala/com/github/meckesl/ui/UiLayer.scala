@@ -80,12 +80,7 @@ class UiLayer(canvas: Canvas) {
   def boardGrid(): Unit = {
     clearLayer()
     val t = tileSize
-    l.fillStyle = "rgba(40, 32, 20, 0.05)"
-    for (i <- 0 until RuleRepository.squareCount) {
-      val p = Point.fromLinear(i, RuleRepository.squareX)
-      if ((p.x + p.y) % 2 == 0) l.fillRect(p.x * t.x, p.y * t.y, t.x, t.y)
-    }
-    l.strokeStyle = "rgba(40, 32, 20, 0.14)"
+    l.strokeStyle = "rgba(40, 32, 20, 0.05)"
     l.lineWidth = 1
     l.beginPath()
     for (x <- 1 until RuleRepository.squareX) {
