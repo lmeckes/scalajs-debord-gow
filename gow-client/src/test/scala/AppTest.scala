@@ -99,7 +99,7 @@ object AppTest extends TestSuite {
       }
 
       test("attackPtsOn44") {
-        assert(getWithTurn(4, 4).canBeTargetOfStrength.equals(23 - cavalryChargeBonus)) //FIXME
+        assert(getWithTurn(4, 4).canBeTargetOfStrength.equals(23))
       }
 
       test("doesNotContributeDefense") {
@@ -294,6 +294,55 @@ object AppTest extends TestSuite {
       assert(target.unit == VoidTile)
       assert(game.forcedRetreat.isEmpty)
       assert(game.turnPlayer != red)
+    }
+
+    test("cavalryLineCharge") {
+
+      val board =
+        """
+          |. . . . . . .
+          |. i V V V V V
+          |. . . . . . .
+          |. . . . . . .
+          |. . . . . . .
+          |. . . . . . .
+          |a . . . . . A
+        """.stripMargin
+      val game = setupGame(board, board, 7)
+      val target = get(2, 2)
+
+      test("upToFourCavalryInLineCharge") {
+        assert(target.chargingCavalry == Set(get(3, 2), get(4, 2), get(5, 2), get(6, 2)))
+        assert(target.canBeTargetOfStrength == 4 * (RedCavalry.attack + cavalryChargeBonus))
+      }
+
+      test("lineMustReachTheTarget") {
+        get(3, 2).unit = VoidTile
+        game.refreshComLayer()
+        assert(target.chargingCavalry.isEmpty)
+        assert(target.canBeTargetOfStrength == RedCavalry.attack)
+      }
+    }
+
+    test("mountedUnitStopsOnFirstSquareOutOfCom") {
+
+      val board =
+        """
+          |. . . . . . a
+          |. . . . . . .
+          |. . . . . . .
+          |. . . . . . .
+          |. . . . . . .
+          |V . . . . . .
+          |A . . . . . .
+        """.stripMargin
+      setupGame(board, board, 7)
+      val cavalry = getWithTurn(1, 6)
+      assert(get(2, 5).com(cavalry.unit.player).isEmpty)
+      assert(cavalry.canMoveTo(get(2, 5)))
+      assert(cavalry.canMoveTo(get(1, 4)))
+      assert(cavalry.canMoveTo(get(3, 5)))
+      assert(!cavalry.canMoveTo(get(3, 4)))
     }
 
     test("oneAttackPerTurn") {
