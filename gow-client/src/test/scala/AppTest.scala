@@ -199,6 +199,49 @@ object AppTest extends TestSuite {
 
     }
 
+    test("enemyRelayAndArsenalBlockCom") {
+      val board =
+        """
+          |A . r . I . .
+          |. . . . . . .
+          |. . . . . . .
+          |a . . . . . .
+          |. . . . . . .
+          |I . . . . . .
+          |. . . . . . i
+        """.stripMargin
+      setupGame(board, board, 7)
+      assert(!get(5, 1).isOnline)
+      assert(!get(1, 6).isOnline)
+    }
+
+    test("bentChainsConnectInAnyOrientation") {
+      def chainOnline(board: String, squares: Seq[(Int, Int)]) = {
+        setupGame(board, board, 7)
+        squares.forall { case (x, y) => get(x, y).isOnline }
+      }
+      assert(chainOnline(
+        """
+          |. . . . . . a
+          |. . . . . . .
+          |. . . . . . .
+          |. . . . . . .
+          |. . . I . . .
+          |. . . . I . .
+          |A . . . I . .
+        """.stripMargin, Seq((5, 7), (5, 6), (4, 5))))
+      assert(chainOnline(
+        """
+          |A . . . I . .
+          |. . . . I . .
+          |. . . I . . .
+          |. . . . . . .
+          |. . . . . . .
+          |. . . . . . .
+          |. . . . . . a
+        """.stripMargin, Seq((5, 1), (5, 2), (4, 3))))
+    }
+
     test("communicationLinesAdvanced") {
 
       val game = setupGame(secondndLevelCom, secondndLevelCom)
