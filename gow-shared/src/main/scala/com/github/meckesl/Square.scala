@@ -54,8 +54,6 @@ case class Square(index: Int, terrain: Tile, g: Game) {
       g.refreshComLayer()
       g.turnMovedUnits add dest
       g.turnRemainingMoves -= 1
-      if (g.turnRemainingMoves == 0)
-        g.nextTurn()
       true
     }
     else

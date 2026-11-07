@@ -210,6 +210,32 @@ object AppTest extends TestSuite {
 
     }
 
+    test("fiveMovesDoNotEndTurn") {
+
+      val board =
+        """
+          |A I I I I I I
+          |. . . . . . .
+          |. . . . . . .
+          |. . . . . . .
+          |. . . . . . .
+          |. . . . . . .
+          |i . . . . . a
+        """.stripMargin
+      val game = setupGame(board, board, 7)
+      val red = getWithTurn(2, 1).unit.player
+
+      (2 to 6).foreach { x =>
+        val r = GameEngine.applyAction(game, red, GameAction.Move(get(x, 1).index, get(x, 2).index))
+        assert(r.isRight)
+      }
+      assert(game.turnPlayer == red)
+      assert(game.turnRemainingMoves == 0)
+      assert(GameEngine.applyAction(game, red, GameAction.Move(get(7, 1).index, get(7, 2).index)) == Left("Illegal move"))
+      assert(GameEngine.applyAction(game, red, GameAction.EndTurn) == Right(GameEvent.TurnEnded))
+      assert(game.turnPlayer != red)
+    }
+
     test("oneAttackPerTurn") {
 
       val board =
