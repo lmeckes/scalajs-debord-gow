@@ -1,6 +1,8 @@
 import BoardPositions._
 import com.github.meckesl.repo.TileRepository._
 import com.github.meckesl.repo.{PlayerRepository, RuleRepository}
+import com.github.meckesl.GameEngine
+import com.github.meckesl.protocol.{GameAction, GameEvent}
 import utest._
 
 object AppTest extends TestSuite {
@@ -204,6 +206,60 @@ object AppTest extends TestSuite {
       test("relaysDoRelayFullyWhenConnectedByUnits") {
         assert(getWithTurn(5, 12).unit.equals(RedCavalry))
         assert(getWithTurn(5, 12).isOnline)
+      }
+
+    }
+
+    test("fiveMovesDoNotEndTurn") {
+
+      val board =
+        """
+          |A I I I I I I
+          |. . . . . . .
+          |. . . . . . .
+          |. . . . . . .
+          |. . . . . . .
+          |. . . . . . .
+          |i . . . . . a
+        """.stripMargin
+      val game = setupGame(board, board, 7)
+      val red = getWithTurn(2, 1).unit.player
+
+      (2 to 6).foreach { x =>
+        val r = GameEngine.applyAction(game, red, GameAction.Move(get(x, 1).index, get(x, 2).index))
+        assert(r.isRight)
+      }
+      assert(game.turnPlayer == red)
+      assert(game.turnRemainingMoves == 0)
+      assert(GameEngine.applyAction(game, red, GameAction.Move(get(7, 1).index, get(7, 2).index)) == Left("Illegal move"))
+      assert(GameEngine.applyAction(game, red, GameAction.EndTurn) == Right(GameEvent.TurnEnded))
+      assert(game.turnPlayer != red)
+    }
+
+    test("oneAttackPerTurn") {
+
+      val board =
+        """
+          |. . . . . . .
+          |. . . . . . .
+          |. . . . . . .
+          |. . . i . . .
+          |A . . I . . .
+          |. . . . . . .
+          |. . . . . . a
+        """.stripMargin
+      val game = setupGame(board, board, 7)
+      val attacker = getWithTurn(4, 5)
+      val target = get(4, 4)
+      val red = attacker.unit.player
+
+      test("failedAttackEndsTurn") {
+        assert(target.canBeTargetOfStrength < target.defenseStrength)
+        val first = GameEngine.applyAction(game, red, GameAction.Attack(attacker.index, target.index))
+        assert(first == Right(GameEvent.Attacked(attacker.index, target.index, 0)))
+        assert(game.turnPlayer != red)
+        val second = GameEngine.applyAction(game, red, GameAction.Attack(attacker.index, target.index))
+        assert(second == Left("Not your turn"))
       }
 
     }
