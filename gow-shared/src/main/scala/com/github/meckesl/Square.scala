@@ -18,30 +18,41 @@ case class Square(index: Int, terrain: Tile, g: Game) {
 
   def isCurrentTurn: Boolean = g.turnPlayer.equals(unit.player)
 
-  def canAttack(dest: Square): Boolean = {
-    targetsInAttackRange.contains(dest)
-  }
+  def canAttack(dest: Square): Boolean =
+    g.forcedRetreat.isEmpty && targetsInAttackRange.contains(dest)
+
+  def mustRetreat: Boolean = g.forcedRetreat.contains(this)
+
+  def retreatSquares: Set[Square] = inRange(1).filter(_.unit.equals(VoidTile))
 
   def canTakeArsenal(dest: Square): Boolean = {
     canMoveTo(dest, Set(BlueArsenal, RedArsenal)
       .filterNot(_.player.equals(unit.player)).head)
   }
 
+  /** While a retreat is pending, only the unit that must retreat may move. */
   def canMove: Boolean =
-    isCurrentTurn &&
-      g.turnRemainingMoves > 0 &&
-      !g.turnMovedUnits.exists(_.equals(this)) &&
-      unit.speed > 0 &&
-      isOnline
+    if (g.forcedRetreat.isDefined)
+      mustRetreat && isCurrentTurn && g.turnRemainingMoves > 0
+    else
+      isCurrentTurn &&
+        g.turnRemainingMoves > 0 &&
+        !g.turnMovedUnits.exists(_.equals(this)) &&
+        unit.speed > 0 &&
+        isOnline
 
   def canMoveTo(dest: Square, allowedDest: Tile = VoidTile): Boolean =
-    canMove &&
-      dest.unit.equals(allowedDest) &&
-      !dest.terrain.equals(Mountain) &&
-      inRange(unit.speed).contains(dest)
+    if (g.forcedRetreat.isDefined)
+      allowedDest.equals(VoidTile) && canMove && retreatSquares.contains(dest)
+    else
+      canMove &&
+        dest.unit.equals(allowedDest) &&
+        !dest.terrain.equals(Mountain) &&
+        inRange(unit.speed).contains(dest)
 
   def moveUnitTo(dest: Square): Boolean = {
     if (canMoveTo(dest)) {
+      if (mustRetreat) g.forcedRetreat = None
       dest.unit = unit
       if (dest.coords.x > coords.x)
         dest.lastMoveDir = CardinalityRepository.E
@@ -73,11 +84,11 @@ case class Square(index: Int, terrain: Tile, g: Game) {
     val result = as - ds
 
     val outcome =
-      if (result > 1) {
+      if (result > 1 || (result == 1 && retreatSquares.isEmpty)) {
         g.capturedUnits :+ unit
         unit = VoidTile
         g.refreshComLayer()
-        2
+        if (result > 1) 2 else 3
       } else if (result == 1) {
         g.forcedRetreat = Some(this)
         1

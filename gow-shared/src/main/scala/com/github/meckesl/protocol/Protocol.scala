@@ -19,6 +19,7 @@ object GameAction {
 sealed trait GameEvent
 object GameEvent {
   case class Moved(from: Int, to: Int) extends GameEvent
+  /** result: 0 repelled, 1 target must retreat, 2 destroyed, 3 removed because it could not retreat. */
   case class Attacked(from: Int, target: Int, result: Int) extends GameEvent
   case class ArsenalTaken(from: Int, to: Int) extends GameEvent
   case object TurnEnded extends GameEvent

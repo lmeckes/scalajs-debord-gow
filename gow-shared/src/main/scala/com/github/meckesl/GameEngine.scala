@@ -35,6 +35,8 @@ object GameEngine {
             Right(Attacked(from, target, dst.launchAttackOn()))
           case _ => Left("Illegal attack")
         }
+      case EndTurn if game.forcedRetreat.isDefined =>
+        Left("The attacked unit must retreat first")
       case EndTurn =>
         game.nextTurn()
         Right(TurnEnded)

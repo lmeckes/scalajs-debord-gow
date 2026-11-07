@@ -87,6 +87,7 @@ class InfoPanel(root: html.Element) {
     val defence = target.defenseStrength
     val (outcome, cls) = attack - defence match {
       case d if d > 1 => ("Destroyed", "win")
+      case 1 if target.retreatSquares.isEmpty => ("Destroyed (no retreat)", "win")
       case 1 => ("Forced to retreat", "retreat")
       case _ => ("Attack fails", "fail")
     }
