@@ -1,6 +1,8 @@
 import BoardPositions._
 import com.github.meckesl.repo.TileRepository._
 import com.github.meckesl.repo.{PlayerRepository, RuleRepository}
+import com.github.meckesl.GameEngine
+import com.github.meckesl.protocol.{GameAction, GameEvent}
 import utest._
 
 object AppTest extends TestSuite {
@@ -204,6 +206,34 @@ object AppTest extends TestSuite {
       test("relaysDoRelayFullyWhenConnectedByUnits") {
         assert(getWithTurn(5, 12).unit.equals(RedCavalry))
         assert(getWithTurn(5, 12).isOnline)
+      }
+
+    }
+
+    test("oneAttackPerTurn") {
+
+      val board =
+        """
+          |. . . . . . .
+          |. . . . . . .
+          |. . . . . . .
+          |. . . i . . .
+          |A . . I . . .
+          |. . . . . . .
+          |. . . . . . a
+        """.stripMargin
+      val game = setupGame(board, board, 7)
+      val attacker = getWithTurn(4, 5)
+      val target = get(4, 4)
+      val red = attacker.unit.player
+
+      test("failedAttackEndsTurn") {
+        assert(target.canBeTargetOfStrength < target.defenseStrength)
+        val first = GameEngine.applyAction(game, red, GameAction.Attack(attacker.index, target.index))
+        assert(first == Right(GameEvent.Attacked(attacker.index, target.index, 0)))
+        assert(game.turnPlayer != red)
+        val second = GameEngine.applyAction(game, red, GameAction.Attack(attacker.index, target.index))
+        assert(second == Left("Not your turn"))
       }
 
     }

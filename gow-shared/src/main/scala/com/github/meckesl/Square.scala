@@ -74,19 +74,20 @@ case class Square(index: Int, terrain: Tile, g: Game) {
     val ds = defenseStrength
     val result = as - ds
 
-    if (result > 1) {
-      g.capturedUnits :+ unit
-      unit = VoidTile
-      g.refreshComLayer()
-      g.nextTurn()
-      2
-    } else if (result == 1) {
-      g.forcedRetreat = Some(this)
-      g.nextTurn()
-      1
-    }
-    else
-      0
+    val outcome =
+      if (result > 1) {
+        g.capturedUnits :+ unit
+        unit = VoidTile
+        g.refreshComLayer()
+        2
+      } else if (result == 1) {
+        g.forcedRetreat = Some(this)
+        1
+      }
+      else
+        0
+    g.nextTurn()
+    outcome
   }
 
   def targetsInAttackRange: mutable.Set[Square] = inCombatRange(unit.range).filterNot(ir => {
