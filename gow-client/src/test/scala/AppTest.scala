@@ -236,6 +236,66 @@ object AppTest extends TestSuite {
       assert(game.turnPlayer != red)
     }
 
+    test("forcedRetreat") {
+
+      val board =
+        """
+          |A . . . . . .
+          |. . . . . . .
+          |. . V . . . .
+          |. . i . . . .
+          |. . . . . . .
+          |. . . . . . .
+          |. . a . . . i
+        """.stripMargin
+      val game = setupGame(board, board, 7)
+      val attacker = getWithTurn(3, 3)
+      val target = get(3, 4)
+      val red = attacker.unit.player
+      val blue = target.unit.player
+
+      assert(GameEngine.applyAction(game, red, GameAction.Attack(attacker.index, target.index)) ==
+        Right(GameEvent.Attacked(attacker.index, target.index, 1)))
+      assert(game.turnPlayer == blue)
+      assert(game.forcedRetreat.contains(target))
+
+      assert(GameEngine.applyAction(game, blue, GameAction.EndTurn).isLeft)
+      assert(GameEngine.applyAction(game, blue, GameAction.Move(get(7, 7).index, get(6, 7).index)).isLeft)
+      assert(GameEngine.applyAction(game, blue, GameAction.Move(target.index, get(3, 6).index)).isLeft)
+
+      assert(GameEngine.applyAction(game, blue, GameAction.Move(target.index, get(2, 5).index)).isRight)
+      assert(get(2, 5).unit == BlueInfantry)
+      assert(game.forcedRetreat.isEmpty)
+      assert(game.turnRemainingMoves == RuleRepository.turnMoves - 1)
+      assert(GameEngine.applyAction(game, blue, GameAction.Move(get(7, 7).index, get(6, 7).index)).isRight)
+    }
+
+    test("unitThatCannotRetreatIsRemoved") {
+
+      val board =
+        """
+          |i M . . . . .
+          |M V . . . . .
+          |. . i . . . .
+          |. . . . . . .
+          |. . . . . . .
+          |. . . . . . .
+          |. A . . . . a
+        """.stripMargin
+      val game = setupGame(board, board, 7)
+      val attacker = getWithTurn(2, 2)
+      val target = get(1, 1)
+      val red = attacker.unit.player
+
+      assert(target.canBeTargetOfStrength - target.defenseStrength == 1)
+      assert(target.retreatSquares.isEmpty)
+      assert(GameEngine.applyAction(game, red, GameAction.Attack(attacker.index, target.index)) ==
+        Right(GameEvent.Attacked(attacker.index, target.index, 3)))
+      assert(target.unit == VoidTile)
+      assert(game.forcedRetreat.isEmpty)
+      assert(game.turnPlayer != red)
+    }
+
     test("oneAttackPerTurn") {
 
       val board =

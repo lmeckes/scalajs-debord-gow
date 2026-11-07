@@ -161,7 +161,7 @@ case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas,
   }
 
   private def canGrab(sq: Square): Boolean =
-    myTurn && (sq.canMove || (sq.isCurrentTurn && sq.targetsInAttackRange.nonEmpty))
+    myTurn && (sq.canMove || (sq.isCurrentTurn && game.forcedRetreat.isEmpty && sq.targetsInAttackRange.nonEmpty))
 
   private def showMoveHints(sq: Square): Unit = {
     if (myTurn && sq.canMove)

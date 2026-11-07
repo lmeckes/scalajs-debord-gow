@@ -154,10 +154,13 @@ class LobbyView(ui: UiController, game: Game) {
       (0 until RuleRepository.turnMoves).foreach { i =>
         movePips.appendChild(span("", if (i < game.turnRemainingMoves) "on" else ""))
       }
-    movesLabel.textContent = if (result.isEmpty) s"${game.turnRemainingMoves} of ${RuleRepository.turnMoves} moves left" else ""
+    movesLabel.textContent =
+      if (result.nonEmpty) ""
+      else if (game.forcedRetreat.isDefined) "Retreat the attacked unit first"
+      else s"${game.turnRemainingMoves} of ${RuleRepository.turnMoves} moves left"
     if (result.isEmpty) dom.document.body.setAttribute("data-turn", turn.toString)
     else dom.document.body.removeAttribute("data-turn")
-    show(endTurnBtn, result.isEmpty && ui.canAct)
+    show(endTurnBtn, result.isEmpty && ui.canAct && game.forcedRetreat.isEmpty)
     opponentStatus.textContent = opponentDeadline.filter(_ => result.isEmpty).map { deadline =>
       val secs = ((deadline - System.currentTimeMillis()) / 1000).toInt.max(0)
       s"Opponent disconnected, they forfeit in ${secs}s"
@@ -276,6 +279,7 @@ class LobbyView(ui: UiController, game: Game) {
   ui.onEvent = {
     case GameEvent.Attacked(_, _, 2) => showToast("Attack succeeded: unit destroyed")
     case GameEvent.Attacked(_, _, 1) => showToast("Attack succeeded: unit must retreat")
+    case GameEvent.Attacked(_, _, 3) => showToast("Attack succeeded: unit could not retreat and was removed")
     case GameEvent.Attacked(_, _, _) => showToast("Attack repelled")
     case GameEvent.ArsenalTaken(_, _) => showToast("Arsenal captured")
     case _ =>
