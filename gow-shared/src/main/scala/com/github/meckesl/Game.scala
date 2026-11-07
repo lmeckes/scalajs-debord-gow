@@ -47,49 +47,65 @@ class Game {
     }
   }
 
+  /** Lines run straight from arsenals (and relays standing on a line) until a mountain or an enemy unit;
+    * units also connect through chains of adjacent friendly units leading to a unit on a line. */
   def refreshComLayer(): Unit = {
+    gameSquares.foreach(_.com.foreach(_._2.clear()))
+    Seq(Red, Blue).foreach(propagateCommunication)
+  }
 
-    def terrainBlocks(sq: Square) = sq.terrain.equals(Mountain)
-    def opponentBlocks(sq: Square, pl: Player) = !Seq(Neutral, pl).contains(sq.unit.player)
+  private def propagateCommunication(pl: Player): Unit = {
+    val directions = CardinalityRepository.all - SOURCE
+    def blocks(sq: Square) = sq.terrain.equals(Mountain) || !Seq(Neutral, pl).contains(sq.unit.player)
+    def friendly(sq: Square) = null != sq && sq.unit.player.equals(pl)
 
-    def processCommunication(source: Square, cursor: Square, dir: Set[Cardinality], isSubPropagationMode: Boolean): Unit = {
-      val pl = source.unit.player
+    val emitters = mutable.Queue[Square]()
+    val emitting = mutable.Set[Square]()
+    val chain = mutable.Queue[Square]()
+    val linked = mutable.Set[Square]()
+    def emit(sq: Square): Unit = if (emitting.add(sq)) emitters.enqueue(sq)
+    def link(sq: Square): Unit = if (linked.add(sq)) {
+      chain.enqueue(sq)
+      if (sq.unit.isCom && RuleRepository.relaysEmitWhenChained) emit(sq)
+    }
 
-      if (pl.equals(Neutral) || (isSubPropagationMode && source.com(pl).isEmpty)) return
+    gameSquares.filter(sq => friendly(sq) && Seq(RedArsenal, BlueArsenal).contains(sq.unit)).foreach(emit)
 
-      val effectiveDir = if (isSubPropagationMode) dir.filterNot(_.equals(SOURCE)) else dir
-
-      effectiveDir.foreach(d => {
-        val sq = cursor.adjacentSquare(d)
-        if (null != sq) {
-          if (isSubPropagationMode) {
-            if (sq.unit.player.equals(pl) && !sq.com(pl).contains(CardinalityRepository.opposite(d))) {
-              cursor.com(pl) += d
-            sq.com(pl) += CardinalityRepository.opposite(d)
-            processCommunication(source, sq, Set(d), true)
-            if (sq.unit.isCom)
-              processCommunication(sq, sq, CardinalityRepository.all, false)
-            }
-          } else { // isPropagateMode
-            if (!sq.com(pl).contains(CardinalityRepository.opposite(d))) {
-              sq.com(pl) += CardinalityRepository.opposite(d)
-              if (!terrainBlocks(sq) && (!opponentBlocks(sq, pl) || sq.unit.isCom)) {
-                sq.com(pl) += d
-                if (sq.unit.isCom && sq.unit.player.equals(pl))
-                  processCommunication(sq, sq, CardinalityRepository.all, false)
-                else
-                  processCommunication(source, sq, Set(d), false)
+    while (emitters.nonEmpty || chain.nonEmpty) {
+      while (emitters.nonEmpty) {
+        val source = emitters.dequeue()
+        source.com(pl) += SOURCE
+        link(source)
+        directions.foreach { d =>
+          var from = source
+          var next = source.adjacentSquare(d)
+          while (null != next) {
+            from.com(pl) += d
+            next.com(pl) += CardinalityRepository.opposite(d)
+            if (blocks(next)) next = null
+            else {
+              if (friendly(next)) {
+                link(next)
+                if (next.unit.isCom) emit(next)
               }
+              from = next
+              next = next.adjacentSquare(d)
             }
           }
         }
-      })
+      }
+      while (chain.nonEmpty) {
+        val sq = chain.dequeue()
+        directions.foreach { d =>
+          val adj = sq.adjacentSquare(d)
+          if (friendly(adj) && !linked.contains(adj)) {
+            sq.com(pl) += d
+            adj.com(pl) += CardinalityRepository.opposite(d)
+            link(adj)
+          }
+        }
+      }
     }
-    gameSquares.foreach(_.com.foreach(_._2.clear()))
-    gameSquares.filter(sq => Seq(RedArsenal, BlueArsenal).contains(sq.unit))
-      .foreach(sq => processCommunication(sq, sq, CardinalityRepository.all, false))
-    gameSquares.filter(sq => !sq.unit.isCom && sq.com.values.nonEmpty && !sq.unit.player.equals(Neutral))
-      .foreach(sq => processCommunication(sq, sq, CardinalityRepository.all, true))
   }
 
   refreshComLayer()
