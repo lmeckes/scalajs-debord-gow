@@ -178,7 +178,7 @@ case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas,
     if (sq.isCurrentTurn) {
       uiOverlay.tileUnitHighlight(sq)
       sq.alliesInRange.foreach(uiOverlay.tileHighlight(_, Color.fromPlayer(sq.unit.player, 0.18)))
-      sq.targetsInAttackRange.foreach(uiOverlay.targetHint)
+      if (game.forcedRetreat.isEmpty) sq.targetsInAttackRange.foreach(uiOverlay.targetHint)
       showMoveHints(sq)
     }
     showInfo(sq)
