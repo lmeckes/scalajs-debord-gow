@@ -160,6 +160,9 @@ case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas,
     else info.clear()
   }
 
+  private def canGrab(sq: Square): Boolean =
+    myTurn && (sq.canMove || (sq.isCurrentTurn && sq.targetsInAttackRange.nonEmpty))
+
   private def showMoveHints(sq: Square): Unit = {
     if (myTurn && sq.canMove)
       sq.inRange(sq.unit.speed).foreach { dest =>
@@ -203,7 +206,7 @@ case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas,
     val hoverSq = getGameSquare(e)
     overlayCanvas.style.cursor =
       if (null != squareSource) "grabbing"
-      else if (myTurn && hoverSq.canMove) "grab"
+      else if (canGrab(hoverSq)) "grab"
       else "default"
 
     if (null == squareSource || squareSource == hoverSq) {
@@ -254,7 +257,7 @@ case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas,
 
   def onMousedown(e: dom.MouseEvent): Unit = {
     val curSq = getGameSquare(e)
-    if (myTurn && curSq.canMove) {
+    if (canGrab(curSq)) {
       audioChannel1.src = Loader.getSoundUrl(curSq, "select")
       audioChannel1.play()
       squareSource = curSq
