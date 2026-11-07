@@ -345,6 +345,65 @@ object AppTest extends TestSuite {
       assert(!cavalry.canMoveTo(get(3, 4)))
     }
 
+
+    test("combatEligibility") {
+
+      val board =
+        """
+          |. . . . . i .
+          |. . . . . . .
+          |. M . . . . .
+          |M . . . . . .
+          |. . . . . . .
+          |I r . . . . .
+          |A R . . . . a
+        """.stripMargin
+      val game = setupGame(board, board, 7)
+
+      test("relayDefendsItself") {
+        assert(get(2, 6).defenseStrength == 1)
+        assert(get(2, 6).alliesInRange == Set(get(2, 6)))
+      }
+
+      test("relayCannotAttack") {
+        val relay = getWithTurn(2, 7)
+        assert(!relay.canStartAttack)
+        assert(!relay.canAttack(get(2, 6)))
+        assert(GameEngine.applyAction(game, relay.unit.player, GameAction.Attack(relay.index, get(2, 6).index)) == Left("Illegal attack"))
+      }
+
+      test("connectedCombatUnitCanAttack") {
+        assert(getWithTurn(1, 6).canAttack(get(2, 6)))
+      }
+
+      test("cutOffCombatUnitCannotAttack") {
+        val infantry = getWithTurn(6, 1)
+        assert(!infantry.isOnline)
+        get(6, 2).unit = RedInfantry
+        game.refreshComLayer()
+        assert(infantry.targetsInAttackRange.contains(get(6, 2)))
+        assert(!infantry.canAttack(get(6, 2)))
+      }
+    }
+
+    test("onlyCombatUnitsTakeArsenals") {
+
+      val board =
+        """
+          |. . . . . . .
+          |. . . . . . .
+          |. . . . . . .
+          |. . . . . . .
+          |. . . . . . .
+          |r i . . . . a
+          |A . . . . . .
+        """.stripMargin
+      setupGame(board, board, 7)
+      val arsenal = get(1, 7)
+      assert(!getWithTurn(1, 6).canTakeArsenal(arsenal))
+      assert(getWithTurn(2, 6).canTakeArsenal(arsenal))
+    }
+
     test("oneAttackPerTurn") {
 
       val board =

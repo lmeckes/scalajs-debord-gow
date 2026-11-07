@@ -18,17 +18,20 @@ case class Square(index: Int, terrain: Tile, g: Game) {
 
   def isCurrentTurn: Boolean = g.turnPlayer.equals(unit.player)
 
+  /** Only combat units in communication can start an attack. */
+  def canStartAttack: Boolean =
+    isCurrentTurn && g.forcedRetreat.isEmpty && !unit.isCom && isOnline
+
   def canAttack(dest: Square): Boolean =
-    g.forcedRetreat.isEmpty && targetsInAttackRange.contains(dest)
+    canStartAttack && targetsInAttackRange.contains(dest)
 
   def mustRetreat: Boolean = g.forcedRetreat.contains(this)
 
   def retreatSquares: Set[Square] = inRange(1).filter(_.unit.equals(VoidTile))
 
-  def canTakeArsenal(dest: Square): Boolean = {
-    canMoveTo(dest, Set(BlueArsenal, RedArsenal)
+  def canTakeArsenal(dest: Square): Boolean =
+    !unit.isCom && canMoveTo(dest, Set(BlueArsenal, RedArsenal)
       .filterNot(_.player.equals(unit.player)).head)
-  }
 
   /** While a retreat is pending, only the unit that must retreat may move. */
   def canMove: Boolean =
@@ -160,8 +163,10 @@ case class Square(index: Int, terrain: Tile, g: Game) {
     enemies.toSet ++ chargingCavalry
   }
 
+  /** Communication units have no range but defend their own square. */
   def alliesInRange: Set[Square] = {
     val allies = mutable.Set[Square]()
+    if (unit.isCom) allies += this
     1 to TileRepository.units.maxBy(_.range).range foreach (attackRange => {
       allies ++= inCombatRange(attackRange)
         .filter(_.unit.player.equals(unit.player))

@@ -429,8 +429,8 @@
             <ul>
                 <li><b>Move up to 5 different units</b>, each once, by dragging them. A unit travels up to its
                     movement in any of the 8 directions; it can't end on a mountain or an occupied square.</li>
-                <li><b>Attack once</b> by dragging one of your units onto an enemy within its range.</li>
-                <li><b>Take an arsenal</b> by moving a unit onto an enemy arsenal: it is destroyed.</li>
+                <li><b>Attack once</b> by dragging one of your connected combat units onto an enemy within its range. Relays can't attack.</li>
+                <li><b>Take an arsenal</b> by moving a combat unit onto an enemy arsenal: it is destroyed.</li>
                 <li>Press <b>End turn</b> (or <kbd>Space</kbd>) to finish your turn. After your moves you may
                     still attack; your turn ends after an attack (successful or not) or taking an arsenal.</li>
             </ul>
@@ -448,7 +448,7 @@
             <ul>
                 <li><b>Attack</b> = the attack of every connected enemy unit lined up with the target (straight or
                     45&deg; diagonal) and close enough to reach it with its range.</li>
-                <li><b>Defence</b> = the defence of every connected friendly unit lined up with the target within its own range.</li>
+                <li><b>Defence</b> = the defence of every connected friendly unit lined up with the target within its own range. A relay adds its own defence when it is the target.</li>
                 <li><b>Cavalry charge</b>: +3 for each connected cavalry unit right next to the target or in an unbroken straight line of up to 4 cavalry leading to it (all of them count, even beyond their range). Not against a fortress or mountain pass, nor from a fortress.</li>
                 <li>Mountains block lines of fire. While you drag onto a target, the side panel shows both totals and the expected result.</li>
             </ul>
