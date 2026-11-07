@@ -18,17 +18,20 @@ case class Square(index: Int, terrain: Tile, g: Game) {
 
   def isCurrentTurn: Boolean = g.turnPlayer.equals(unit.player)
 
+  /** Only combat units in communication can start an attack. */
+  def canStartAttack: Boolean =
+    isCurrentTurn && g.forcedRetreat.isEmpty && !unit.isCom && isOnline
+
   def canAttack(dest: Square): Boolean =
-    g.forcedRetreat.isEmpty && targetsInAttackRange.contains(dest)
+    canStartAttack && targetsInAttackRange.contains(dest)
 
   def mustRetreat: Boolean = g.forcedRetreat.contains(this)
 
   def retreatSquares: Set[Square] = inRange(1).filter(_.unit.equals(VoidTile))
 
-  def canTakeArsenal(dest: Square): Boolean = {
-    canMoveTo(dest, Set(BlueArsenal, RedArsenal)
+  def canTakeArsenal(dest: Square): Boolean =
+    !unit.isCom && canMoveTo(dest, Set(BlueArsenal, RedArsenal)
       .filterNot(_.player.equals(unit.player)).head)
-  }
 
   /** While a retreat is pending, only the unit that must retreat may move. */
   def canMove: Boolean =
@@ -48,7 +51,23 @@ case class Square(index: Int, terrain: Tile, g: Game) {
       canMove &&
         dest.unit.equals(allowedDest) &&
         !dest.terrain.equals(Mountain) &&
-        inRange(unit.speed).contains(dest)
+        reachableSquares.contains(dest)
+
+  /** A mounted combat unit must stop on the first square outside communication. */
+  def reachableSquares: Set[Square] = {
+    var frontier = inRange(1)
+    var reached = frontier
+    2 to unit.speed foreach { _ =>
+      frontier = frontier.filter(sq => unit.isCom || isSupplied(sq)).flatMap(_.inRange(1))
+      reached ++= frontier
+    }
+    reached
+  }
+
+  private def isSupplied(sq: Square): Boolean = {
+    val pl = unit.player
+    sq.com(pl).nonEmpty || sq.inRange(1).exists(n => n != this && n.unit.player.equals(pl) && n.com(pl).nonEmpty)
+  }
 
   def moveUnitTo(dest: Square): Boolean = {
     if (canMoveTo(dest)) {
@@ -103,18 +122,24 @@ case class Square(index: Int, terrain: Tile, g: Game) {
     Set(unit.player, Neutral).contains(ir.unit.player)
   }).filterNot(ir => Set(RedArsenal, BlueArsenal).contains(ir.unit))
 
-  def canBeTargetOfStrength: Int = {
-    val attackers = canBeTargetOf
-    val baseStrength = attackers.toSeq.map(_.unit.attack).sum
-    if (!Set(Fortress, MountainPass).contains(terrain)) {
-      val cavalryBonus = inRange(1)
-        .intersect(attackers)
-        .filterNot(_.terrain.equals(Fortress))
-        .toSeq
-        .map(_.unit)
-        .count(Seq(BlueCavalry, RedCavalry).contains(_)) * TileRepository.cavalryChargeBonus
-      baseStrength + cavalryBonus
-    } else baseStrength
+  def canBeTargetOfStrength: Int =
+    canBeTargetOf.toSeq.map(_.unit.attack).sum + chargingCavalry.size * TileRepository.cavalryChargeBonus
+
+  /** Cavalry charges when adjacent to the target or in a straight line of up to 4 cavalry leading to it,
+    * except against a fort or pass and from a fort. */
+  def chargingCavalry: Set[Square] = {
+    def charges(sq: Square) =
+      null != sq &&
+        Seq(BlueCavalry, RedCavalry).contains(sq.unit) &&
+        !sq.unit.player.equals(unit.player) &&
+        !sq.terrain.equals(Fortress) &&
+        sq.isOnline
+    if (Set(Fortress, MountainPass).contains(terrain) || unit.player.equals(Neutral)) Set.empty
+    else (CardinalityRepository.all - SOURCE).flatMap { d =>
+      Iterator.iterate(adjacentSquare(d))(sq => if (null == sq) null else sq.adjacentSquare(d))
+        .take(TileRepository.cavalryChargeLength)
+        .takeWhile(charges)
+    }
   }
 
   def defenseStrength: Int = alliesInRange.toSeq.map(sq => {
@@ -135,11 +160,13 @@ case class Square(index: Int, terrain: Tile, g: Game) {
         .filter(_.unit.range >= range)
         .filter(_.isOnline)
     })
-    enemies.toSet
+    enemies.toSet ++ chargingCavalry
   }
 
+  /** Communication units have no range but defend their own square. */
   def alliesInRange: Set[Square] = {
     val allies = mutable.Set[Square]()
+    if (unit.isCom) allies += this
     1 to TileRepository.units.maxBy(_.range).range foreach (attackRange => {
       allies ++= inCombatRange(attackRange)
         .filter(_.unit.player.equals(unit.player))

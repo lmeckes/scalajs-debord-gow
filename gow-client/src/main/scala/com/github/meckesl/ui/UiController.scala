@@ -161,7 +161,7 @@ case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas,
   }
 
   private def canGrab(sq: Square): Boolean =
-    myTurn && (sq.canMove || (sq.isCurrentTurn && game.forcedRetreat.isEmpty && sq.targetsInAttackRange.nonEmpty))
+    myTurn && (sq.canMove || (sq.canStartAttack && sq.targetsInAttackRange.nonEmpty))
 
   private def showMoveHints(sq: Square): Unit = {
     if (myTurn && sq.canMove)
@@ -178,7 +178,7 @@ case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas,
     if (sq.isCurrentTurn) {
       uiOverlay.tileUnitHighlight(sq)
       sq.alliesInRange.foreach(uiOverlay.tileHighlight(_, Color.fromPlayer(sq.unit.player, 0.18)))
-      if (game.forcedRetreat.isEmpty) sq.targetsInAttackRange.foreach(uiOverlay.targetHint)
+      if (sq.canStartAttack) sq.targetsInAttackRange.foreach(uiOverlay.targetHint)
       showMoveHints(sq)
     }
     showInfo(sq)
