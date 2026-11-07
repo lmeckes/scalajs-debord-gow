@@ -94,7 +94,8 @@
             text-transform: uppercase; color: var(--muted);
         }
         .card h3 + * { margin-top: 0; }
-        .section + .section { margin-top: 16px; }
+        .section + .section, .me + .section { margin-top: 16px; }
+        .section > * + * { margin-top: 8px; }
         .row { display: flex; gap: 8px; align-items: center; }
         .row + .row { margin-top: 8px; }
         .grow { flex: 1; min-width: 0; }
