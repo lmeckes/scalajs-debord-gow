@@ -24,3 +24,16 @@ jobs:
 
     - name: Generate artifact
       run: sbt client/fullOptJS
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: gow-client
+        path: |
+          gow-client/index.html
+          gow-client/target/scala-2.13/gow-client-opt.js
+          gow-client/target/scala-2.13/gow-client-opt.js.map
+          gow-client/target/scala-2.13/classes/
+          !gow-client/target/scala-2.13/classes/**/*.sjsir
+        if-no-files-found: error
+        retention-days: 30
