@@ -64,6 +64,7 @@
             background: rgba(229, 72, 77, 0.15); color: #ff9a9d; border: 1px solid rgba(229, 72, 77, 0.3);
         }
         #connStatus:empty { display: none; }
+        body.offline .online-only { display: none !important; }
 
         /* Main layout */
         main { flex: 1; display: flex; gap: 16px; padding: 12px 20px 16px; min-height: 0; }
@@ -402,7 +403,7 @@
         </section>
         <aside id="panel">
             <div id="lobbyView" class="card" style="display: none">
-                <div class="me">
+                <div class="me online-only">
                     <div class="avatar" id="meAvatar"></div>
                     <div class="grow">
                         <div class="me-label">Playing as</div>
@@ -411,20 +412,20 @@
                     <button id="renameBtn" class="link">Change</button>
                 </div>
                 <div class="section">
-                    <button id="quickBtn" class="primary block">Quick match</button>
-                    <div class="field-head"><span id="scenarioLabel">Starting position</span><span>Private &amp; local games</span></div>
+                    <button id="quickBtn" class="primary block online-only">Quick match</button>
+                    <div class="field-head"><span id="scenarioLabel">Starting position</span><span class="online-only">Private &amp; local games</span></div>
                     <div id="scenarioPicker" class="picker"></div>
-                    <div class="row"><button id="privateBtn" class="grow">Private game</button><button id="localBtn" class="grow">Local game</button></div>
-                    <div class="row"><input type="text" id="codeInput" placeholder="Game code" maxlength="5"><button id="joinBtn">Join</button></div>
+                    <div class="row"><button id="privateBtn" class="grow online-only">Private game</button><button id="localBtn" class="grow">Local game</button></div>
+                    <div class="row online-only"><input type="text" id="codeInput" placeholder="Game code" maxlength="5"><button id="joinBtn">Join</button></div>
                     <div id="searchStatus"></div>
                     <input type="text" id="shareLink" readonly>
                     <button id="cancelBtn" class="block">Cancel</button>
                 </div>
-                <div class="section">
+                <div class="section online-only">
                     <h3>Online</h3>
                     <ul id="playerList" class="list"></ul>
                 </div>
-                <div class="section">
+                <div class="section online-only">
                     <h3>Games in progress</h3>
                     <ul id="gameList" class="list"></ul>
                 </div>
@@ -445,7 +446,7 @@
                 <h3>Unit</h3>
                 <div id="infoPanel"></div>
             </div>
-            <div id="chatCard" class="card">
+            <div id="chatCard" class="card online-only">
                 <h3>Chat</h3>
                 <div id="chatLog"></div>
                 <input type="text" id="chatInput" placeholder="Say something&hellip;">

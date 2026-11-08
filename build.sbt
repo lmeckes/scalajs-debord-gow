@@ -18,6 +18,25 @@ lazy val sharedJVM = shared.jvm
 
 lazy val client = project.in(file("gow-client"))
   .dependsOn(sharedJS)
+  .settings(
+    // Board and scenario files are compiled into the JS so that index.html also works from file://
+    Compile / sourceGenerators += Def.task {
+      val files = ((Compile / resourceDirectory).value * ("*.board" || "*.units")).get().sortBy(_.getName)
+      def literal(text: String) = text.flatMap {
+        case '"' => "\\\""
+        case '\\' => "\\\\"
+        case '\n' => "\\n"
+        case '\r' => "\\r"
+        case '\t' => "\\t"
+        case c if c < ' ' || c > '~' => "\\u%04x".format(c.toInt)
+        case c => c.toString
+      }
+      val entries = files.map(f => "    \"" + f.getName + "\" -> \"" + literal(IO.read(f)) + "\"").mkString(",\n")
+      val out = (Compile / sourceManaged).value / "com" / "github" / "meckesl" / "io" / "EmbeddedResources.scala"
+      IO.write(out, "package com.github.meckesl.io\n\nobject EmbeddedResources {\n  val files: Map[String, String] = Map(\n" + entries + "\n  )\n}\n")
+      Seq(out)
+    }.taskValue
+  )
 
 lazy val server = project.in(file("gow-server"))
   .dependsOn(sharedJVM)
