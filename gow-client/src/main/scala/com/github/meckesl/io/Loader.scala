@@ -1,7 +1,7 @@
 package com.github.meckesl.io
 
 import com.github.meckesl.{BoardLoader, Square}
-import com.github.meckesl.repo.{PlayerRepository, TileRepository}
+import com.github.meckesl.repo.{PlayerRepository, ScenarioRepository, TileRepository}
 import com.github.meckesl.repo.TileRepository.{Tile, VoidTile}
 import org.scalajs.dom
 import org.scalajs.dom._
@@ -47,25 +47,25 @@ object Loader {
     }
   }
 
-  def getStartingGamePosition(boardFile: String, unitFile: String, xWidth: Int): Future[Boolean] = {
-
-    def fetch(file: String): Future[String] = {
-      val promise: Promise[String] = Promise()
-      val xhr = new XMLHttpRequest()
-      xhr.open("GET", s"$resourcePath/$file")
-      xhr.onload = { (_: Event) =>
-        if (xhr.status == 200) promise.success(xhr.responseText)
-        else promise.failure(new RuntimeException(s"cannot read $file"))
-      }
-      xhr.send()
-      promise.future
+  private def fetch(file: String): Future[String] = {
+    val promise: Promise[String] = Promise()
+    val xhr = new XMLHttpRequest()
+    xhr.open("GET", s"$resourcePath/$file")
+    xhr.onload = { (_: Event) =>
+      if (xhr.status == 200) promise.success(xhr.responseText)
+      else promise.failure(new RuntimeException(s"cannot read $file"))
     }
+    xhr.send()
+    promise.future
+  }
 
+  def loadScenarios(boardFile: String, xWidth: Int): Future[Boolean] = {
+    val files = ScenarioRepository.all.map(_.unitsFile)
     for {
       board <- fetch(boardFile)
-      units <- fetch(unitFile)
+      units <- Future.sequence(files.map(fetch))
     } yield {
-      BoardLoader.load(board, units, xWidth)
+      BoardLoader.loadScenarios(board, files.zip(units).toMap, xWidth)
       true
     }
   }

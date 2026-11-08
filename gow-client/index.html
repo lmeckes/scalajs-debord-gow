@@ -133,6 +133,56 @@
         .me-name { font-weight: 700; }
         .me-label { color: var(--muted); font-size: 12px; }
 
+        /* Starting position picker */
+        .field-head {
+            display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+            font-size: 11px; color: var(--muted); padding: 6px 2px 0;
+        }
+        .field-head > :first-child { font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+        .field-head + .picker { margin-top: 6px; }
+        .picker { position: relative; }
+        .picker-button, .picker-option { display: flex; align-items: center; gap: 12px; text-align: left; }
+        .picker-button { width: 100%; padding: 8px 12px 8px 8px; background: rgba(0, 0, 0, 0.25); }
+        .picker.open .picker-button { border-color: rgba(212, 162, 76, 0.6); background: rgba(0, 0, 0, 0.35); }
+        .minimap {
+            flex-shrink: 0; display: block; border-radius: 5px;
+            background: linear-gradient(160deg, #3b4434, #262c22);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07), 0 2px 6px rgba(0, 0, 0, 0.35);
+        }
+        .picker-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+        .picker-name { font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .picker-sub {
+            font-size: 12px; font-weight: 500; color: var(--muted);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .picker-chevron, .picker-check { flex-shrink: 0; width: 16px; height: 16px; background: currentColor; }
+        .picker-chevron {
+            color: var(--muted); transition: transform 0.2s ease, color 0.15s ease;
+            -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+            mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+        }
+        .picker-button:hover .picker-chevron { color: var(--text); }
+        .picker.open .picker-chevron { transform: rotate(180deg); color: var(--accent); }
+        .picker-list {
+            position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 20;
+            margin: 0; padding: 6px; list-style: none; max-height: 340px; overflow-y: auto; outline: none;
+            background: var(--surface-solid); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px;
+            box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
+            opacity: 0; visibility: hidden; transform: translateY(-4px) scale(0.98); transform-origin: top center;
+            transition: opacity 0.15s ease, transform 0.15s ease, visibility 0s linear 0.15s;
+        }
+        .picker.open .picker-list { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
+        .picker-option { padding: 7px 10px 7px 7px; border-radius: 8px; cursor: pointer; }
+        .picker-option + .picker-option { margin-top: 2px; }
+        .picker-option.active { background: rgba(255, 255, 255, 0.07); }
+        .picker-option[aria-selected=true] .picker-name { color: var(--accent); }
+        .picker-check {
+            color: var(--accent); visibility: hidden;
+            -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+            mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+        }
+        .picker-option[aria-selected=true] .picker-check { visibility: visible; }
+
         #searchStatus { color: var(--muted); font-size: 13px; margin-top: 12px; display: flex; gap: 10px; align-items: center; }
         #searchStatus:empty { display: none; }
         #searchStatus::before {
@@ -360,6 +410,8 @@
                 </div>
                 <div class="section">
                     <button id="quickBtn" class="primary block">Quick match</button>
+                    <div class="field-head"><span id="scenarioLabel">Starting position</span><span>Private &amp; local games</span></div>
+                    <div id="scenarioPicker" class="picker"></div>
                     <div class="row"><button id="privateBtn" class="grow">Private game</button><button id="localBtn" class="grow">Local game</button></div>
                     <div class="row"><input type="text" id="codeInput" placeholder="Game code" maxlength="5"><button id="joinBtn">Join</button></div>
                     <div id="searchStatus"></div>

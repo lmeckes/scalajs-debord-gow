@@ -23,7 +23,7 @@ object App {
     val board = getElementById("board").asInstanceOf[html.Div]
     val boardWrap = getElementById("boardWrap").asInstanceOf[html.Element]
 
-    Loader.getStartingGamePosition("init.board", "init.units", 25).foreach {
+    Loader.loadScenarios("init.board", 25).foreach {
       _ =>
         val game = new Game
         val info = new InfoPanel(getElementById("infoPanel").asInstanceOf[html.Element])
