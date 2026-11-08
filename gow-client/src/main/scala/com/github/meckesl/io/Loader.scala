@@ -4,12 +4,11 @@ import com.github.meckesl.{BoardLoader, Square}
 import com.github.meckesl.repo.{PlayerRepository, ScenarioRepository, TileRepository}
 import com.github.meckesl.repo.TileRepository.{Tile, VoidTile}
 import org.scalajs.dom
-import org.scalajs.dom._
-import org.scalajs.dom.{HTMLImageElement, XMLHttpRequest}
+import org.scalajs.dom.HTMLImageElement
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.Future
 
 object Loader {
 
@@ -47,27 +46,13 @@ object Loader {
     }
   }
 
-  private def fetch(file: String): Future[String] = {
-    val promise: Promise[String] = Promise()
-    val xhr = new XMLHttpRequest()
-    xhr.open("GET", s"$resourcePath/$file")
-    xhr.onload = { (_: Event) =>
-      if (xhr.status == 200) promise.success(xhr.responseText)
-      else promise.failure(new RuntimeException(s"cannot read $file"))
-    }
-    xhr.send()
-    promise.future
-  }
+  private def read(file: String): String =
+    EmbeddedResources.files.getOrElse(file, throw new RuntimeException(s"cannot read $file"))
 
-  def loadScenarios(boardFile: String, xWidth: Int): Future[Boolean] = {
+  def loadScenarios(boardFile: String, xWidth: Int): Future[Boolean] = Future {
     val files = ScenarioRepository.all.map(_.unitsFile)
-    for {
-      board <- fetch(boardFile)
-      units <- Future.sequence(files.map(fetch))
-    } yield {
-      BoardLoader.loadScenarios(board, files.zip(units).toMap, xWidth)
-      true
-    }
+    BoardLoader.loadScenarios(read(boardFile), files.map(f => f -> read(f)).toMap, xWidth)
+    true
   }
 
 }

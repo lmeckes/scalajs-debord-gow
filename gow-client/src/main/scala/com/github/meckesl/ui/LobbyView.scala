@@ -61,8 +61,12 @@ class LobbyView(ui: UiController, game: Game) {
   private var scenarioName = ""
   private var opponentDeadline: Option[Double] = None
 
+  private var everConnected = false
+
   private val client: LobbyClient = new LobbyClient(
     onOpen = () => {
+      everConnected = true
+      dom.document.body.classList.remove("offline")
       connStatus.textContent = ""
       stored("gow.name") match {
         case Some(name) => client.send(Hello(name, token))
@@ -70,8 +74,15 @@ class LobbyView(ui: UiController, game: Game) {
       }
     },
     onMessage = handle,
-    onClosed = () => connStatus.textContent = "Connection lost, reconnecting..."
+    onClosed = () => if (everConnected) connStatus.textContent = "Connection lost, reconnecting..." else showOffline()
   )
+
+  /** Without a server only local games are available; online controls are hidden by the `offline` class. */
+  private def showOffline(): Unit = {
+    connStatus.textContent = "Offline: local games only"
+    dom.document.body.classList.add("offline")
+    showLobby()
+  }
 
   private def colourName(c: Char) = if (c == 'r') "Red" else "Blue"
 
@@ -319,5 +330,6 @@ class LobbyView(ui: UiController, game: Game) {
   preview(scenarioPicker.value)
   setSearching("")
   show(gameView, visible = false)
+  if (!client.available) showOffline()
   setInterval(1000)(if (opponentDeadline.nonEmpty && inGame) renderGame())
 }

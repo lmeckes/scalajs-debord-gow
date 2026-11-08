@@ -15,6 +15,9 @@ class LobbyClient(onOpen: () => Unit, onMessage: ServerMsg => Unit, onClosed: ()
   private var retryDelay = 1000
   private var stopped = false
 
+  /** False when the page was opened from disk, where there is no server to connect to. */
+  val available: Boolean = dom.window.location.protocol != "file:"
+
   private def url: String = {
     val location = dom.window.location
     val scheme = if (location.protocol == "https:") "wss" else "ws"
@@ -44,8 +47,8 @@ class LobbyClient(onOpen: () => Unit, onMessage: ServerMsg => Unit, onClosed: ()
 
   def stop(): Unit = {
     stopped = true
-    connection.close()
+    if (connection != null) connection.close()
   }
 
-  connect()
+  if (available) connect()
 }

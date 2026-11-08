@@ -12,6 +12,8 @@ Generates client Javascript files ready to be run in the browser (optimized)
 sbt client/fullOptJS
 ```
 
+`gow-client/index.html` can then be opened directly from disk (`file://`) to play local games; online play needs the server.
+
 Run server (serves the game and the online lobby on http://localhost:8080/)
 ```sh
 sbt server/run
