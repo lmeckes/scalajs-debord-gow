@@ -1,6 +1,7 @@
 package com.github.meckesl.ui
 
 import com.github.meckesl.{Game, GameEngine, GameSnapshot}
+import com.github.meckesl.repo.ScenarioRepository.Scenario
 import com.github.meckesl.protocol.ClientMsg._
 import com.github.meckesl.protocol.{GameEvent, ServerMsg}
 import com.github.meckesl.repo.{RuleRepository, ScenarioRepository}
@@ -25,7 +26,6 @@ class LobbyView(ui: UiController, game: Game) {
   private val quickBtn = el[html.Button]("quickBtn")
   private val privateBtn = el[html.Button]("privateBtn")
   private val cancelBtn = el[html.Button]("cancelBtn")
-  private val scenarioSelect = el[html.Select]("scenarioSelect")
   private val codeInput = el[html.Input]("codeInput")
   private val searchStatus = el[html.Div]("searchStatus")
   private val shareLink = el[html.Input]("shareLink")
@@ -161,7 +161,7 @@ class LobbyView(ui: UiController, game: Game) {
       if (result.nonEmpty) ""
       else if (game.forcedRetreat.isDefined) "Retreat the attacked unit first"
       else s"${game.turnRemainingMoves} of ${RuleRepository.turnMoves} moves left"
-    if (result.isEmpty) dom.document.body.setAttribute("data-turn", turn.toString)
+    if (result.isEmpty && inGame) dom.document.body.setAttribute("data-turn", turn.toString)
     else dom.document.body.removeAttribute("data-turn")
     show(endTurnBtn, result.isEmpty && ui.canAct && game.forcedRetreat.isEmpty)
     opponentStatus.textContent = opponentDeadline.filter(_ => result.isEmpty).map { deadline =>
@@ -189,7 +189,7 @@ class LobbyView(ui: UiController, game: Game) {
   }
 
   private def startLocal(): Unit = {
-    val scenario = ScenarioRepository.byId(scenarioSelect.value).getOrElse(ScenarioRepository.all.head)
+    val scenario = scenarioPicker.value
     val localGame = new Game(RuleRepository.scenarioUnits(scenario.id))
     enterGame(isLocal = true)
     scenarioName = scenario.name
@@ -208,7 +208,11 @@ class LobbyView(ui: UiController, game: Game) {
     ui.controls = _ => false
     dom.document.body.removeAttribute("data-turn")
     showLobby()
+    preview(scenarioPicker.value)
   }
+
+  private def preview(scenario: Scenario): Unit =
+    if (!inGame) ui.showState(GameSnapshot.of(new Game(RuleRepository.scenarioUnits(scenario.id))), None)
 
   private def appendChat(from: String, text: String): Unit = {
     val line = dom.document.createElement("div").asInstanceOf[html.Div]
@@ -296,7 +300,7 @@ class LobbyView(ui: UiController, game: Game) {
   nameInput.onkeydown = (e: KeyboardEvent) => if (e.key == "Enter") login()
   nameInput.value = stored("gow.name").getOrElse("")
   quickBtn.onclick = (_: Event) => client.send(QuickMatch)
-  privateBtn.onclick = (_: Event) => client.send(CreatePrivate(scenarioSelect.value))
+  privateBtn.onclick = (_: Event) => client.send(CreatePrivate(scenarioPicker.value.id))
   cancelBtn.onclick = (_: Event) => client.send(CancelSearch)
   el[html.Button]("joinBtn").onclick = (_: Event) => if (codeInput.value.trim.nonEmpty) client.send(JoinPrivate(codeInput.value))
   el[html.Button]("localBtn").onclick = (_: Event) => startLocal()
@@ -309,12 +313,9 @@ class LobbyView(ui: UiController, game: Game) {
       chatInput.value = ""
     }
   shareLink.onclick = (_: Event) => shareLink.select()
-  ScenarioRepository.all.foreach { s =>
-    val option = dom.document.createElement("option").asInstanceOf[html.Option]
-    option.value = s.id
-    option.textContent = s.name
-    scenarioSelect.appendChild(option)
-  }
+  private val scenarioPicker = new ScenarioPicker(el[html.Element]("scenarioPicker"), stored("gow.scenario"),
+    onPreview = preview, onChange = s => storage.setItem("gow.scenario", s.id))
+  preview(scenarioPicker.value)
   setSearching("")
   show(gameView, visible = false)
   setInterval(1000)(if (opponentDeadline.nonEmpty && inGame) renderGame())
