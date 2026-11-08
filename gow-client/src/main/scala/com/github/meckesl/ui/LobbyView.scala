@@ -85,6 +85,7 @@ class LobbyView(ui: UiController, game: Game) {
     show(loginView, visible = false)
     show(lobbyView, !inGame)
     show(gameView, inGame)
+    dom.document.body.classList.toggle("in-game", inGame)
   }
 
   private def login(): Unit = {

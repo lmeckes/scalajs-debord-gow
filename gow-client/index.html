@@ -72,8 +72,10 @@
             position: relative; border-radius: 6px; overflow: hidden;
             background: url('target/scala-2.13/classes/background.png') center / cover no-repeat;
             box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
-            transition: box-shadow 0.4s ease;
+            filter: grayscale(1);
+            transition: box-shadow 0.4s ease, filter 0.6s ease;
         }
+        body.in-game #board { filter: none; }
         body[data-turn=r] #board { box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 0 2px rgba(229, 72, 77, 0.75), 0 0 40px rgba(229, 72, 77, 0.25); }
         body[data-turn=b] #board { box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 0 2px rgba(62, 142, 247, 0.75), 0 0 40px rgba(62, 142, 247, 0.25); }
         #board canvas { position: absolute; top: 0; left: 0; display: block; }
