@@ -78,7 +78,7 @@ object LobbyTest extends TestSuite {
       val f = new Fixture
       val a = f.join("alice")
       val b = f.join("bob")
-      f.lobby.handle(a, CreatePrivate("default"))
+      f.lobby.handle(a, CreatePrivate("vanilla"))
       val code = a.last[PrivateCreated].code
       f.lobby.handle(b, QuickMatch)
       assert(a.count[MatchStarted] == 0)
@@ -102,7 +102,7 @@ object LobbyTest extends TestSuite {
       val started = b.last[MatchStarted]
       assert(started.scenario == "marengo")
       assert(started.state.units == RuleRepository.scenarioUnits("marengo").map(_.char).mkString)
-      assert(started.state.units != RuleRepository.startingUnits.map(_.char).mkString)
+      assert(started.state.units != RuleRepository.scenarioUnits("vanilla").map(_.char).mkString)
     }
 
     test("quick match picks a random scenario") {

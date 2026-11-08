@@ -189,7 +189,7 @@ class LobbyView(ui: UiController, game: Game) {
   }
 
   private def startLocal(): Unit = {
-    val scenario = ScenarioRepository.byId(scenarioSelect.value).getOrElse(ScenarioRepository.default)
+    val scenario = ScenarioRepository.byId(scenarioSelect.value).getOrElse(ScenarioRepository.all.head)
     val localGame = new Game(RuleRepository.scenarioUnits(scenario.id))
     enterGame(isLocal = true)
     scenarioName = scenario.name

@@ -25,7 +25,7 @@ class Lobby(forfeitMillis: Long = 120000L, clock: () => Long = () => System.curr
     var conn: Option[Connection] = None
     var disconnectedAt: Option[Long] = None
     var game: Option[Match] = None
-    var hostedScenario: Scenario = ScenarioRepository.default
+    var hostedScenario: Scenario = ScenarioRepository.all.head
     def send(msg: ServerMsg): Unit = conn.foreach(_.send(msg))
   }
 

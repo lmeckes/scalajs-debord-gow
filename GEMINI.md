@@ -38,7 +38,7 @@ Communication between the client and server is handled via **WebSockets**, which
 
 -   **Server (`gow-server/Server.scala`)**: The server is simple and functional, correctly configured to serve the client application and establish a WebSocket connection.
 
--   **Client (`gow-client/App.scala`)**: The client's entry point initializes the game, loads the initial board state from resource files (`init.board`, `init.units`), and sets up a `UiController` which acts as the central hub for all rendering and event handling. The use of multiple canvases for different layers (background, units, overlays) is a standard technique for 2D game development.
+-   **Client (`gow-client/App.scala`)**: The client's entry point initializes the game, loads the initial board state from resource files (`init.board` plus one `.units` file per scenario), and sets up a `UiController` which acts as the central hub for all rendering and event handling. The use of multiple canvases for different layers (background, units, overlays) is a standard technique for 2D game development.
 
 ## 5. Strengths & Observations
 

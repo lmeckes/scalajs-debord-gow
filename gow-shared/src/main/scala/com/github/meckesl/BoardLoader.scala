@@ -20,7 +20,7 @@ object BoardLoader {
 
   /** Loads the terrain and every scenario; unitsByFile maps a scenario's units file to its text. */
   def loadScenarios(boardText: String, unitsByFile: Map[String, String], width: Int): Unit = {
-    load(boardText, unitsByFile(ScenarioRepository.default.unitsFile), width)
+    load(boardText, unitsByFile(ScenarioRepository.all.head.unitsFile), width)
     RuleRepository.scenarioUnits = ScenarioRepository.all.map(s => s.id -> parseUnits(unitsByFile(s.unitsFile))).toMap
   }
 }

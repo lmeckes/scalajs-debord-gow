@@ -4,10 +4,9 @@ package com.github.meckesl.repo
 object ScenarioRepository {
   case class Scenario(id: String, name: String, unitsFile: String)
 
-  val default: Scenario = Scenario("default", "Default", "init.units")
-  // Class Wargames battle maps (Richard Barbrook, "Class Wargames", designs by David Blanco).
+  // All but Vanilla are Class Wargames battle maps (Richard Barbrook, "Class Wargames", designs by David Blanco).
   val all: Seq[Scenario] = Seq(
-    default,
+    Scenario("vanilla", "Vanilla", "vanilla.units"),
     Scenario("pumphouse", "Pump House", "pumphouse.units"),
     Scenario("rio", "Rio de Janeiro", "rio.units"),
     Scenario("marengo", "Marengo 1800", "marengo.units"),
