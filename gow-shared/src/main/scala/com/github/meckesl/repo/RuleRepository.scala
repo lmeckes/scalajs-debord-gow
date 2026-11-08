@@ -8,6 +8,7 @@ object RuleRepository {
   val relaysEmitWhenChained = true
   var startingTerrain: Seq[Tile] = _
   var startingUnits: Seq[Tile] = _
+  var scenarioUnits: Map[String, Seq[Tile]] = Map()
   var squareX: Int = 0
   var squareY: Int = 0
   def squareCount: Int = squareX * squareY

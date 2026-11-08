@@ -5,6 +5,8 @@ import com.github.meckesl.protocol._
 import com.github.meckesl.protocol.ClientMsg._
 import com.github.meckesl.protocol.ServerMsg._
 import com.github.meckesl.repo.PlayerRepository.{Blue, Player, Red}
+import com.github.meckesl.repo.{RuleRepository, ScenarioRepository}
+import com.github.meckesl.repo.ScenarioRepository.Scenario
 
 import java.util.UUID
 import scala.collection.mutable
@@ -23,15 +25,16 @@ class Lobby(forfeitMillis: Long = 120000L, clock: () => Long = () => System.curr
     var conn: Option[Connection] = None
     var disconnectedAt: Option[Long] = None
     var game: Option[Match] = None
+    var hostedScenario: Scenario = ScenarioRepository.default
     def send(msg: ServerMsg): Unit = conn.foreach(_.send(msg))
   }
 
-  private class Match(val id: String, val red: Guest, val blue: Guest) {
-    val game = new Game
+  private class Match(val id: String, val red: Guest, val blue: Guest, val scenario: Scenario) {
+    val game = new Game(RuleRepository.scenarioUnits(scenario.id))
     def guests: Seq[Guest] = Seq(red, blue)
     def colourOf(g: Guest): Player = if (g eq red) Red else Blue
     def opponentOf(g: Guest): Guest = if (g eq red) blue else red
-    def started(g: Guest): MatchStarted = MatchStarted(id, colourOf(g).c, red.name, blue.name, GameSnapshot.of(game))
+    def started(g: Guest): MatchStarted = MatchStarted(id, colourOf(g).c, red.name, blue.name, scenario.id, GameSnapshot.of(game))
   }
 
   private val guests = mutable.Map[String, Guest]()
@@ -113,16 +116,18 @@ class Lobby(forfeitMillis: Long = 120000L, clock: () => Long = () => System.curr
       else quickQueue.headOption match {
         case Some(opp) =>
           quickQueue -= opp
-          startMatch(opp, g)
+          startMatch(opp, g, ScenarioRepository.default)
         case None =>
           quickQueue += g
           g.send(Searching)
           broadcastLobby()
       }
 
-    case CreatePrivate =>
+    case CreatePrivate(scenarioId) =>
       if (busy(g)) g.send(ServerError("You are already searching or playing"))
+      else if (!RuleRepository.scenarioUnits.contains(scenarioId)) g.send(ServerError("Unknown scenario"))
       else {
+        g.hostedScenario = ScenarioRepository.byId(scenarioId).get
         val code = newCode()
         privateGames(code) = g
         g.send(PrivateCreated(code))
@@ -138,7 +143,7 @@ class Lobby(forfeitMillis: Long = 120000L, clock: () => Long = () => System.curr
         case Some(host) =>
           cancelSearch(g)
           privateGames -= code
-          startMatch(host, g)
+          startMatch(host, g, host.hostedScenario)
       }
 
     case CancelSearch =>
@@ -173,9 +178,9 @@ class Lobby(forfeitMillis: Long = 120000L, clock: () => Long = () => System.curr
     privateGames.filterInPlace((_, host) => host ne g)
   }
 
-  private def startMatch(a: Guest, b: Guest): Unit = {
+  private def startMatch(a: Guest, b: Guest, scenario: Scenario): Unit = {
     val (red, blue) = if (Random.nextBoolean()) (a, b) else (b, a)
-    val m = new Match(UUID.randomUUID().toString.take(8), red, blue)
+    val m = new Match(UUID.randomUUID().toString.take(8), red, blue, scenario)
     matches(m.id) = m
     m.guests.foreach { g =>
       g.game = Some(m)

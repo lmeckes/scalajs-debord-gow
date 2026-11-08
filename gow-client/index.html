@@ -117,10 +117,11 @@
         button.danger:hover { background: rgba(229, 72, 77, 0.15); border-color: rgba(229, 72, 77, 0.4); }
         button.link { background: none; border: none; padding: 2px 6px; color: var(--accent); font-weight: 600; }
         button.block { width: 100%; }
-        input[type=text] {
+        input[type=text], select {
             width: 100%; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--border);
             background: rgba(0, 0, 0, 0.25); outline: none; transition: border-color 0.15s ease;
         }
+        select { background: #1b1f2a; }
         input[type=text]:focus { border-color: rgba(212, 162, 76, 0.6); }
         input::placeholder { color: #5f6678; }
 
@@ -360,6 +361,8 @@
                 </div>
                 <div class="section">
                     <button id="quickBtn" class="primary block">Quick match</button>
+                    <label class="me-label" for="scenarioSelect">Scenario for private and local games</label>
+                    <select id="scenarioSelect"></select>
                     <div class="row"><button id="privateBtn" class="grow">Private game</button><button id="localBtn" class="grow">Local game</button></div>
                     <div class="row"><input type="text" id="codeInput" placeholder="Game code" maxlength="5"><button id="joinBtn">Join</button></div>
                     <div id="searchStatus"></div>

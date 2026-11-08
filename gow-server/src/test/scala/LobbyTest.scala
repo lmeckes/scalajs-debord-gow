@@ -4,6 +4,8 @@ import com.github.meckesl.protocol.{GameAction, GameEvent, GameState}
 import com.github.meckesl.protocol.ClientMsg._
 import com.github.meckesl.protocol.ServerMsg._
 import com.github.meckesl.protocol.ServerMsg
+import com.github.meckesl.repo.{RuleRepository, ScenarioRepository}
+import com.github.meckesl.repo.TileRepository._
 import utest._
 
 import scala.collection.mutable
@@ -76,7 +78,7 @@ object LobbyTest extends TestSuite {
       val f = new Fixture
       val a = f.join("alice")
       val b = f.join("bob")
-      f.lobby.handle(a, CreatePrivate)
+      f.lobby.handle(a, CreatePrivate("default"))
       val code = a.last[PrivateCreated].code
       f.lobby.handle(b, QuickMatch)
       assert(a.count[MatchStarted] == 0)
@@ -87,6 +89,40 @@ object LobbyTest extends TestSuite {
       assert(c.count[ServerError] == 1)
       f.lobby.handle(c, JoinPrivate(code.toLowerCase))
       assert(a.last[MatchStarted].gameId == c.last[MatchStarted].gameId)
+    }
+
+    test("private game starts on the host's scenario") {
+      val f = new Fixture
+      val a = f.join("alice")
+      val b = f.join("bob")
+      f.lobby.handle(a, CreatePrivate("nope"))
+      assert(a.last[ServerError].message == "Unknown scenario")
+      f.lobby.handle(a, CreatePrivate("marengo"))
+      f.lobby.handle(b, JoinPrivate(a.last[PrivateCreated].code))
+      val started = b.last[MatchStarted]
+      assert(started.scenario == "marengo")
+      assert(started.state.units == RuleRepository.scenarioUnits("marengo").map(_.char).mkString)
+      assert(started.state.units != RuleRepository.startingUnits.map(_.char).mkString)
+    }
+
+    test("quick match uses the default scenario") {
+      val f = new Fixture
+      val (mover, _) = f.matched()
+      val started = mover.last[MatchStarted]
+      assert(started.scenario == ScenarioRepository.default.id)
+      assert(started.state.units == RuleRepository.startingUnits.map(_.char).mkString)
+    }
+
+    test("every scenario deploys the standard armies") {
+      val armies = Seq(RedInfantry -> 9, RedCavalry -> 4, RedCannon -> 1, RedSwiftCannon -> 1, RedRelay -> 1,
+        RedSwiftRelay -> 1, RedArsenal -> 2, BlueInfantry -> 9, BlueCavalry -> 4, BlueCannon -> 1,
+        BlueSwiftCannon -> 1, BlueRelay -> 1, BlueSwiftRelay -> 1, BlueArsenal -> 2)
+      ScenarioRepository.all.foreach { s =>
+        val units = RuleRepository.scenarioUnits(s.id)
+        assert(units.size == RuleRepository.squareCount)
+        armies.foreach { case (tile, n) => assert((s.id, tile, units.count(_ eq tile)) == ((s.id, tile, n))) }
+        assert(units.zip(RuleRepository.startingTerrain).forall { case (u, t) => u == VoidTile || t != Mountain })
+      }
     }
 
     test("out of turn actions are rejected") {

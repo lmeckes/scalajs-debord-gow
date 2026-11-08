@@ -53,7 +53,7 @@ object ClientMsg {
   case class Hello(name: String, token: Option[String]) extends ClientMsg
   case class Chat(text: String) extends ClientMsg
   case object QuickMatch extends ClientMsg
-  case object CreatePrivate extends ClientMsg
+  case class CreatePrivate(scenario: String) extends ClientMsg
   case class JoinPrivate(code: String) extends ClientMsg
   case object CancelSearch extends ClientMsg
   case class Act(action: GameAction) extends ClientMsg
@@ -62,7 +62,7 @@ object ClientMsg {
   implicit val helloRW: RW[Hello] = macroRW
   implicit val chatRW: RW[Chat] = macroRW
   implicit val quickMatchRW: RW[QuickMatch.type] = macroRW
-  implicit val createPrivateRW: RW[CreatePrivate.type] = macroRW
+  implicit val createPrivateRW: RW[CreatePrivate] = macroRW
   implicit val joinPrivateRW: RW[JoinPrivate] = macroRW
   implicit val cancelSearchRW: RW[CancelSearch.type] = macroRW
   implicit val actRW: RW[Act] = macroRW
@@ -78,7 +78,7 @@ object ServerMsg {
   case object Searching extends ServerMsg
   case class PrivateCreated(code: String) extends ServerMsg
   case object SearchCancelled extends ServerMsg
-  case class MatchStarted(gameId: String, you: Char, red: String, blue: String, state: GameState) extends ServerMsg
+  case class MatchStarted(gameId: String, you: Char, red: String, blue: String, scenario: String, state: GameState) extends ServerMsg
   case class GameUpdate(state: GameState, event: GameEvent) extends ServerMsg
   case class OpponentConnection(connected: Boolean, forfeitSeconds: Int) extends ServerMsg
   case class GameOver(winner: Char, reason: String) extends ServerMsg

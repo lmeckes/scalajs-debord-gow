@@ -3,7 +3,7 @@ package com.github.meckesl.ui
 import com.github.meckesl.{Game, GameEngine, GameSnapshot}
 import com.github.meckesl.protocol.ClientMsg._
 import com.github.meckesl.protocol.{GameEvent, ServerMsg}
-import com.github.meckesl.repo.RuleRepository
+import com.github.meckesl.repo.{RuleRepository, ScenarioRepository}
 import com.github.meckesl.protocol.ServerMsg._
 import com.github.meckesl.ws.LobbyClient
 import org.scalajs.dom
@@ -25,6 +25,7 @@ class LobbyView(ui: UiController, game: Game) {
   private val quickBtn = el[html.Button]("quickBtn")
   private val privateBtn = el[html.Button]("privateBtn")
   private val cancelBtn = el[html.Button]("cancelBtn")
+  private val scenarioSelect = el[html.Select]("scenarioSelect")
   private val codeInput = el[html.Input]("codeInput")
   private val searchStatus = el[html.Div]("searchStatus")
   private val shareLink = el[html.Input]("shareLink")
@@ -57,6 +58,7 @@ class LobbyView(ui: UiController, game: Game) {
   private var colour: Option[Char] = None
   private var names: Map[Char, String] = Map()
   private var result: Option[String] = None
+  private var scenarioName = ""
   private var opponentDeadline: Option[Double] = None
 
   private val client: LobbyClient = new LobbyClient(
@@ -139,9 +141,10 @@ class LobbyView(ui: UiController, game: Game) {
 
   private def renderGame(): Unit = {
     val turn = game.turnPlayer.c
-    gameTitle.textContent =
+    val title =
       if (local) "Local game"
       else colour.map(c => s"You play ${colourName(c)} against ${names.getOrElse(if (c == 'r') 'b' else 'r', "?")}").getOrElse("")
+    gameTitle.textContent = if (scenarioName.nonEmpty) s"$title · $scenarioName" else title
     gameStatus.textContent = result.getOrElse {
       if (local) s"${colourName(turn)} to play"
       else if (colour.contains(turn)) "Your turn"
@@ -186,8 +189,10 @@ class LobbyView(ui: UiController, game: Game) {
   }
 
   private def startLocal(): Unit = {
-    val localGame = new Game
+    val scenario = ScenarioRepository.byId(scenarioSelect.value).getOrElse(ScenarioRepository.default)
+    val localGame = new Game(RuleRepository.scenarioUnits(scenario.id))
     enterGame(isLocal = true)
+    scenarioName = scenario.name
     colour = None
     ui.controls = _ => result.isEmpty
     ui.onAction = action =>
@@ -250,8 +255,9 @@ class LobbyView(ui: UiController, game: Game) {
 
     case SearchCancelled => setSearching("")
 
-    case MatchStarted(_, you, red, blue, state) =>
+    case MatchStarted(_, you, red, blue, scenario, state) =>
       enterGame(isLocal = false)
+      scenarioName = ScenarioRepository.byId(scenario).map(_.name).getOrElse("")
       colour = Some(you)
       names = Map('r' -> red, 'b' -> blue)
       ui.controls = p => result.isEmpty && colour.contains(p.c)
@@ -290,7 +296,7 @@ class LobbyView(ui: UiController, game: Game) {
   nameInput.onkeydown = (e: KeyboardEvent) => if (e.key == "Enter") login()
   nameInput.value = stored("gow.name").getOrElse("")
   quickBtn.onclick = (_: Event) => client.send(QuickMatch)
-  privateBtn.onclick = (_: Event) => client.send(CreatePrivate)
+  privateBtn.onclick = (_: Event) => client.send(CreatePrivate(scenarioSelect.value))
   cancelBtn.onclick = (_: Event) => client.send(CancelSearch)
   el[html.Button]("joinBtn").onclick = (_: Event) => if (codeInput.value.trim.nonEmpty) client.send(JoinPrivate(codeInput.value))
   el[html.Button]("localBtn").onclick = (_: Event) => startLocal()
@@ -303,6 +309,12 @@ class LobbyView(ui: UiController, game: Game) {
       chatInput.value = ""
     }
   shareLink.onclick = (_: Event) => shareLink.select()
+  ScenarioRepository.all.foreach { s =>
+    val option = dom.document.createElement("option").asInstanceOf[html.Option]
+    option.value = s.id
+    option.textContent = s.name
+    scenarioSelect.appendChild(option)
+  }
   setSearching("")
   show(gameView, visible = false)
   setInterval(1000)(if (opponentDeadline.nonEmpty && inGame) renderGame())
