@@ -116,7 +116,7 @@ class Lobby(forfeitMillis: Long = 120000L, clock: () => Long = () => System.curr
       else quickQueue.headOption match {
         case Some(opp) =>
           quickQueue -= opp
-          startMatch(opp, g, ScenarioRepository.default)
+          startMatch(opp, g, ScenarioRepository.all(Random.nextInt(ScenarioRepository.all.size)))
         case None =>
           quickQueue += g
           g.send(Searching)

@@ -105,12 +105,15 @@ object LobbyTest extends TestSuite {
       assert(started.state.units != RuleRepository.startingUnits.map(_.char).mkString)
     }
 
-    test("quick match uses the default scenario") {
-      val f = new Fixture
-      val (mover, _) = f.matched()
-      val started = mover.last[MatchStarted]
-      assert(started.scenario == ScenarioRepository.default.id)
-      assert(started.state.units == RuleRepository.startingUnits.map(_.char).mkString)
+    test("quick match picks a random scenario") {
+      val picked = (1 to 60).map { _ =>
+        val f = new Fixture
+        val (mover, _) = f.matched()
+        val started = mover.last[MatchStarted]
+        assert(started.state.units == RuleRepository.scenarioUnits(started.scenario).map(_.char).mkString)
+        started.scenario
+      }.toSet
+      assert(picked == ScenarioRepository.all.map(_.id).toSet)
     }
 
     test("every scenario deploys the standard armies") {
