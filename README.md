@@ -1,3 +1,5 @@
+<img src="gow-client/resources/logo.svg" alt="Le Jeu de la Guerre" width="120" align="right"/>
+
 [![Scala CI](https://github.com/meckesl/scalajs-debord-gow/actions/workflows/scala.yml/badge.svg)](https://github.com/meckesl/scalajs-debord-gow/actions/workflows/scala.yml)
 
 ## Usage
