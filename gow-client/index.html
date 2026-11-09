@@ -68,9 +68,12 @@
 
         /* Main layout */
         main { flex: 1; display: flex; gap: 16px; padding: 12px 20px 16px; min-height: 0; }
-        #boardWrap { flex: 1; position: relative; min-width: 0; display: grid; place-items: center; }
+        #boardWrap { flex: 1; position: relative; min-width: 0; display: flex; }
+        #boardWrap.zoomed { overflow: hidden; }
         #board {
-            position: relative; border-radius: 6px; overflow: hidden;
+            position: relative; flex: none; margin: auto; border-radius: 6px; overflow: hidden;
+            touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
             background: url('target/scala-2.13/classes/background.png') center / cover no-repeat;
             box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
             filter: grayscale(1);
@@ -81,6 +84,11 @@
         body[data-turn=b] #board { box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 0 2px rgba(62, 142, 247, 0.75), 0 0 40px rgba(62, 142, 247, 0.25); }
         #board canvas { position: absolute; top: 0; left: 0; display: block; }
         #comCanvas { opacity: 0.5; }
+        #boardWrap { touch-action: none; }
+        #loupe {
+            display: none; position: fixed; z-index: 80; width: 120px; height: 120px; pointer-events: none;
+            border-radius: 50%; border: 2px solid var(--accent); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+        }
 
         /* Side panel */
         #panel {
@@ -365,13 +373,34 @@
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
 
+        /* Phones and narrow tablets: board on top, scrolling panel below, turn controls pinned at the bottom. */
         @media (max-width: 900px) {
-            body { overflow: auto; }
-            #app { height: auto; min-height: 100vh; }
-            main { flex-direction: column; }
-            #boardWrap { height: auto; aspect-ratio: 5 / 4; max-height: 80vh; }
-            #panel { width: auto; padding: 0; overflow: visible; }
-            .topbar-right .keys { display: none; }
+            #app { height: 100vh; height: 100dvh; }
+            .topbar { padding: 8px 12px; gap: 10px; }
+            .brand-mark { width: 28px; height: 28px; }
+            .brand-sub, .topbar-right .keys { display: none; }
+            #connStatus { white-space: nowrap; }
+            .topbar:has(#connStatus:not(:empty)) .brand-title { font-size: 15px; }
+            main { flex-direction: column; gap: 8px; padding: 8px; }
+            #boardWrap { flex: none; height: min(calc((100vw - 16px) * 0.8), 62vh); }
+            #panel { width: auto; flex: 1; min-height: 0; gap: 8px; }
+            .card { padding: 12px; }
+            #gameView { order: 99; position: sticky; bottom: 0; z-index: 5; background: var(--surface-solid); }
+            #gameTitle { margin-bottom: 6px; }
+            #movePips { margin: 8px 0 2px; }
+            .actions { display: flex; margin-top: 10px; }
+            .actions button { flex: 1; padding: 10px 8px; }
+            .actions #endTurnBtn { flex: 2; }
+            #chatCard { flex: none; min-height: 180px; }
+        }
+        @media (max-width: 460px) {
+            .topbar:has(#connStatus:not(:empty)) .brand > div:last-child { display: none; }
+        }
+        /* Phones held sideways: keep the side panel, narrower. */
+        @media (max-width: 900px) and (orientation: landscape) and (max-height: 500px) {
+            main { flex-direction: row; }
+            #boardWrap { flex: 1; height: auto; }
+            #panel { width: 260px; flex: none; }
         }
     </style>
 </head>
@@ -483,9 +512,9 @@
 
             <h2>Your turn</h2>
             <ul>
-                <li><b>Move up to 5 different units</b>, each once, by dragging them. A unit travels up to its
+                <li><b>Move up to 5 different units</b>, each once, by dragging them (on a touch screen, tap the unit, then its destination). A unit travels up to its
                     movement in any of the 8 directions; it can't end on a mountain or an occupied square.</li>
-                <li><b>Attack once</b> by dragging one of your connected combat units onto an enemy within its range. Relays can't attack.</li>
+                <li><b>Attack once</b> by dragging one of your connected combat units onto an enemy within its range (or tapping it, then the enemy). Relays can't attack.</li>
                 <li><b>Take an arsenal</b> by moving a combat unit onto an enemy arsenal: it is destroyed.</li>
                 <li>Press <b>End turn</b> (or <kbd>Space</kbd>) to finish your turn. After your moves you may
                     still attack; your turn ends after an attack (successful or not) or taking an arsenal.</li>

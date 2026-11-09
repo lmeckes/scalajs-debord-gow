@@ -5,13 +5,17 @@ import com.github.meckesl.io.Loader
 import com.github.meckesl.repo.PlayerRepository
 import com.github.meckesl.repo.PlayerRepository.{Neutral, Player}
 import com.github.meckesl.repo.TileRepository.{Fortress, MountainPass, Tile, VoidTile}
+import org.scalajs.dom
 import org.scalajs.dom.html
 
 /** Side-panel card describing the hovered square, or the odds of the attack being aimed. */
 class InfoPanel(root: html.Element) {
 
   private val placeholder =
-    """<div class="info-empty">Hover a unit to see its strength.<br>Drag one of yours to move or attack.</div>"""
+    if (dom.window.matchMedia("(hover: none)").matches)
+      """<div class="info-empty">Tap a unit to see its strength.<br>Tap one of yours, then where to move or attack.</div>"""
+    else
+      """<div class="info-empty">Hover a unit to see its strength.<br>Drag one of yours to move or attack.</div>"""
 
   def name(t: Tile): String = t.char.toUpper match {
     case 'A' => "Arsenal"
