@@ -268,6 +268,87 @@ case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas,
       squareSource = null
   }
 
+  private def squareAt(x: Double, y: Double): Option[Square] = {
+    val rect = overlayCanvas.getBoundingClientRect()
+    val cx = math.floor((x - rect.left) / tileSize.x).toInt
+    val cy = math.floor((y - rect.top) / tileSize.y).toInt
+    if (cx < 0 || cy < 0 || cx >= RuleRepository.squareX || cy >= RuleRepository.squareY) None
+    else Some(game.gameSquares(new Point(cx, cy).toLinear(RuleRepository.squareX)))
+  }
+
+  private def act(source: Square, target: Square): Boolean = {
+    val action =
+      if (!myTurn) None
+      else if (source.canMoveTo(target)) Some(GameAction.Move(source.index, target.index))
+      else if (source.canTakeArsenal(target)) Some(GameAction.TakeArsenal(source.index, target.index))
+      else if (source.canAttack(target)) Some(GameAction.Attack(source.index, target.index))
+      else None
+    action.foreach { a =>
+      squareClicked = null
+      squareHover = null
+      uiOverlay.clearLayer()
+      info.clear()
+      onAction(a)
+    }
+    action.nonEmpty
+  }
+
+  private def select(sq: Square): Unit = {
+    squareClicked = sq
+    hover(sq)
+  }
+
+  private def deselect(): Unit = {
+    squareClicked = null
+    squareHover = null
+    uiOverlay.clearLayer()
+  }
+
+  /** Touch: a finger lands on the board. Returns true if it picked up one of the player's units. */
+  def touchDown(x: Double, y: Double): Boolean = squareAt(x, y) match {
+    case Some(sq) if canGrab(sq) =>
+      play(audioChannel1, Loader.getSoundUrl(sq, "select"))
+      hover(sq)
+      squareSource = sq
+      true
+    case _ => false
+  }
+
+  /** Touch: the picked-up unit is dragged over the board. */
+  def touchDrag(x: Double, y: Double): Unit =
+    if (null != squareSource) squareAt(x, y).foreach { sq =>
+      if (sq != squareHover) {
+        if (sq == squareSource) hover(sq) else drag(sq)
+      }
+    }
+
+  /** Touch: the dragged unit is released; if the drop isn't a legal action it stays selected. */
+  def touchDrop(): Unit = {
+    val source = squareSource
+    squareSource = null
+    if (null != source && !(null != squareHover && squareHover != source && act(source, squareHover)))
+      select(source)
+  }
+
+  /** Touch: tap a unit to select it, then tap a destination or target to act. */
+  def touchTap(x: Double, y: Double): Unit = {
+    squareSource = null
+    val selected = squareClicked
+    squareAt(x, y) match {
+      case None => deselect(); info.clear()
+      case Some(sq) if null != selected && sq != selected && act(selected, sq) =>
+      case Some(sq) if sq.isCurrentTurn && sq != selected => select(sq)
+      case Some(sq) => deselect(); showInfo(sq)
+    }
+  }
+
+  /** Touch: the gesture turned into a zoom or was interrupted; drop any unit being dragged. */
+  def touchCancel(): Unit = if (null != squareSource) {
+    val source = squareSource
+    squareSource = null
+    select(source)
+  }
+
   def onKeydown(e: dom.KeyboardEvent): Unit = {
     val nextTurn = dom.KeyCode.Space
     val downloadGame = dom.KeyCode.D

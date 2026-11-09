@@ -2,8 +2,8 @@ package com.github.meckesl
 
 import com.github.meckesl.io.Loader
 import com.github.meckesl.repo.RuleRepository
-import com.github.meckesl.ui.{InfoPanel, LobbyView, UiController}
-import com.github.meckesl.{Game, Point}
+import com.github.meckesl.ui.{BoardView, InfoPanel, LobbyView, UiController}
+import com.github.meckesl.Game
 import org.scalajs.dom._
 import org.scalajs.dom.document._
 import org.scalajs.dom.html
@@ -29,17 +29,9 @@ object App {
         val info = new InfoPanel(getElementById("infoPanel").asInstanceOf[html.Element])
         val uiController = UiController(game, backgroundCanvas, comCanvas, terrainCanvas, unitCanvas, overlayCanvas, info)
         import scala.scalajs.js.timers._
-        // Square tiles, as large as the space next to the side panel allows.
-        def layout(): Unit = {
-          val margin = 0
-          val tile = math.max(8, math.floor(4 * math.min(
-            (boardWrap.clientWidth - margin * 2).toDouble / RuleRepository.squareX,
-            (boardWrap.clientHeight - margin * 2).toDouble / RuleRepository.squareY)) / 4)
-          val size = new Point(tile * RuleRepository.squareX, tile * RuleRepository.squareY)
-          board.style.width = s"${size.x}px"
-          board.style.height = s"${size.y}px"
-          uiController.onResize(size)
-        }
+        val boardView = new BoardView(boardWrap, board,
+          Seq(backgroundCanvas, comCanvas, terrainCanvas, unitCanvas, overlayCanvas), uiController)
+        def layout(): Unit = boardView.layout()
         layout()
         var handle: SetTimeoutHandle = null
         window.onresize = (_: Event) => {
