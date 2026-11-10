@@ -43,9 +43,9 @@ object LobbyTest extends TestSuite {
     }
   }
 
-  def legalMove(state: GameState): GameAction.Move = {
-    val game = new Game
-    GameSnapshot.applyTo(state, game)
+  def legalMove(started: MatchStarted): GameAction.Move = {
+    val game = Game.of(started.scenario)
+    GameSnapshot.applyTo(started.state, game)
     val moves = for {
       src <- game.gameSquares if src.unit.player == game.turnPlayer && src.canMove
       dst <- game.gameSquares if src.canMoveTo(dst)
@@ -116,15 +116,33 @@ object LobbyTest extends TestSuite {
       assert(picked == ScenarioRepository.all.map(_.id).toSet)
     }
 
-    test("every scenario deploys the standard armies") {
+    test("every scenario's units fit its board") {
+      ScenarioRepository.all.foreach { s =>
+        val (board, units) = (RuleRepository.scenarioBoards(s.id), RuleRepository.scenarioUnits(s.id))
+        assert(units.size == board.size)
+        assert(units.zip(board.terrain).forall { case (u, t) => u == VoidTile || t != Mountain })
+      }
+    }
+
+    test("escarmouche is an 8x12 board with one fort and small armies") {
+      val board = RuleRepository.scenarioBoards("escarmouche")
+      assert(board.width == 8 && board.height == 12)
+      assert(board.terrain.count(_ == Fortress) == 1)
+      val units = RuleRepository.scenarioUnits("escarmouche")
+      val armies = Seq(RedInfantry -> 4, RedCavalry -> 2, RedCannon -> 1, RedRelay -> 1, RedArsenal -> 1,
+        BlueInfantry -> 4, BlueCavalry -> 2, BlueCannon -> 1, BlueRelay -> 1, BlueArsenal -> 1)
+      armies.foreach { case (tile, n) => assert((tile, units.count(_ eq tile)) == ((tile, n))) }
+      assert(units.count(_ != VoidTile) == armies.map(_._2).sum)
+      assert(Game.of("escarmouche").gameSquares.filter(_.unit != VoidTile).forall(_.isOnline))
+    }
+
+    test("every scenario on the standard board deploys the standard armies") {
       val armies = Seq(RedInfantry -> 9, RedCavalry -> 4, RedCannon -> 1, RedSwiftCannon -> 1, RedRelay -> 1,
         RedSwiftRelay -> 1, RedArsenal -> 2, BlueInfantry -> 9, BlueCavalry -> 4, BlueCannon -> 1,
         BlueSwiftCannon -> 1, BlueRelay -> 1, BlueSwiftRelay -> 1, BlueArsenal -> 2)
-      ScenarioRepository.all.foreach { s =>
+      ScenarioRepository.all.filter(_.boardFile == "init.board").foreach { s =>
         val units = RuleRepository.scenarioUnits(s.id)
-        assert(units.size == RuleRepository.squareCount)
         armies.foreach { case (tile, n) => assert((s.id, tile, units.count(_ eq tile)) == ((s.id, tile, n))) }
-        assert(units.zip(RuleRepository.startingTerrain).forall { case (u, t) => u == VoidTile || t != Mountain })
       }
     }
 
@@ -147,8 +165,9 @@ object LobbyTest extends TestSuite {
     test("legal move is applied and broadcast") {
       val f = new Fixture
       val (mover, waiter) = f.matched()
-      val start = mover.last[MatchStarted].state
-      val move = legalMove(start)
+      val started = mover.last[MatchStarted]
+      val start = started.state
+      val move = legalMove(started)
       f.lobby.handle(mover, Act(move))
       val update = waiter.last[GameUpdate]
       assert(update.event == GameEvent.Moved(move.from, move.to))

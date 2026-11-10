@@ -13,7 +13,9 @@ import org.scalajs.dom.{html, Event, KeyboardEvent}
 import scala.scalajs.js.timers.{clearTimeout, setInterval, setTimeout, SetTimeoutHandle}
 
 /** Lobby, matchmaking and in-game panel; drives the board from server messages. */
-class LobbyView(ui: UiController, game: Game) {
+class LobbyView(ui: UiController) {
+
+  private def game: Game = ui.game
 
   private def el[T](id: String): T = dom.document.getElementById(id).asInstanceOf[T]
   private def show(e: html.Element, visible: Boolean): Unit = e.style.display = if (visible) "block" else "none"
@@ -202,7 +204,8 @@ class LobbyView(ui: UiController, game: Game) {
 
   private def startLocal(): Unit = {
     val scenario = scenarioPicker.value
-    val localGame = new Game(RuleRepository.scenarioUnits(scenario.id))
+    val localGame = Game.of(scenario.id)
+    ui.setBoard(localGame.board)
     enterGame(isLocal = true)
     scenarioName = scenario.name
     colour = None
@@ -224,7 +227,11 @@ class LobbyView(ui: UiController, game: Game) {
   }
 
   private def preview(scenario: Scenario): Unit =
-    if (!inGame) ui.showState(GameSnapshot.of(new Game(RuleRepository.scenarioUnits(scenario.id))), None)
+    if (!inGame) {
+      val game = Game.of(scenario.id)
+      ui.setBoard(game.board)
+      ui.showState(GameSnapshot.of(game), None)
+    }
 
   private def appendChat(from: String, text: String): Unit = {
     val line = dom.document.createElement("div").asInstanceOf[html.Div]
@@ -278,6 +285,7 @@ class LobbyView(ui: UiController, game: Game) {
       names = Map('r' -> red, 'b' -> blue)
       ui.controls = p => result.isEmpty && colour.contains(p.c)
       ui.onAction = action => client.send(Act(action))
+      RuleRepository.scenarioBoards.get(scenario).foreach(ui.setBoard)
       ui.showState(state, None)
 
     case GameUpdate(state, event) => ui.showState(state, Some(event))

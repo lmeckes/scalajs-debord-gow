@@ -2,7 +2,7 @@ package com.github.meckesl.ui
 
 import com.github.meckesl.io.Loader
 import com.github.meckesl.repo.{RuleRepository, TileRepository}
-import com.github.meckesl.{Game, GameSnapshot, Point, Square}
+import com.github.meckesl.{Board, Game, GameSnapshot, Point, Square}
 import com.github.meckesl.protocol.{GameAction, GameEvent, GameState}
 import com.github.meckesl.repo.PlayerRepository.Player
 import com.github.meckesl.repo.TileRepository.VoidTile
@@ -12,7 +12,7 @@ import org.scalajs.dom.html.Canvas
 
 import scala.scalajs.js
 
-case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas, terrainCanvas: Canvas, unitCanvas: Canvas, overlayCanvas: Canvas, info: InfoPanel) {
+case class UiController(var game: Game, backgroundCanvas: Canvas, comCanvas: Canvas, terrainCanvas: Canvas, unitCanvas: Canvas, overlayCanvas: Canvas, info: InfoPanel) {
 
   private val uiBackground = new UiLayer(backgroundCanvas)
   private val uiCom = new UiLayer(comCanvas)
@@ -26,6 +26,18 @@ case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas,
   var onAction: GameAction => Unit = _ => ()
   var onStateChange: () => Unit = () => ()
   var onEvent: GameEvent => Unit = _ => ()
+  var onBoardChange: () => Unit = () => ()
+
+  /** Switches to an empty game on `board` (filled by the next `showState`) when it differs from the current one. */
+  def setBoard(board: Board): Unit = if (board != game.board) {
+    game = new Game(board, Seq.fill(board.size)(VoidTile))
+    squareHover = null
+    squareClicked = null
+    squareSource = null
+    animation = None
+    info.clear()
+    onBoardChange()
+  }
 
   private def myTurn: Boolean = controls(game.turnPlayer)
   def canAct: Boolean = myTurn
@@ -53,9 +65,9 @@ case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas,
 
   private def getGameSquare(e: dom.MouseEvent): Square = {
     val rect = overlayCanvas.getBoundingClientRect()
-    val x = ((e.clientX - rect.left) / tileSize.x).toInt.max(0).min(RuleRepository.squareX - 1)
-    val y = ((e.clientY - rect.top) / tileSize.y).toInt.max(0).min(RuleRepository.squareY - 1)
-    game.gameSquares(new Point(x, y).toLinear(RuleRepository.squareX))
+    val x = ((e.clientX - rect.left) / tileSize.x).toInt.max(0).min(game.board.width - 1)
+    val y = ((e.clientY - rect.top) / tileSize.y).toInt.max(0).min(game.board.height - 1)
+    game.gameSquares(new Point(x, y).toLinear(game.board.width))
   }
 
   private def now: Double = dom.window.performance.now()
@@ -135,7 +147,7 @@ case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas,
   /** Lays the board out at `s` CSS pixels. */
   def onResize(s: Point): Unit = {
     val ratio = dom.window.devicePixelRatio
-    layers.foreach(_.resize(s, ratio))
+    layers.foreach(_.resize(s, ratio, new Point(game.board.width, game.board.height)))
 
     uiBackground.boardGrid()
 
@@ -272,8 +284,8 @@ case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas,
     val rect = overlayCanvas.getBoundingClientRect()
     val cx = math.floor((x - rect.left) / tileSize.x).toInt
     val cy = math.floor((y - rect.top) / tileSize.y).toInt
-    if (cx < 0 || cy < 0 || cx >= RuleRepository.squareX || cy >= RuleRepository.squareY) None
-    else Some(game.gameSquares(new Point(cx, cy).toLinear(RuleRepository.squareX)))
+    if (cx < 0 || cy < 0 || cx >= game.board.width || cy >= game.board.height) None
+    else Some(game.gameSquares(new Point(cx, cy).toLinear(game.board.width)))
   }
 
   private def act(source: Square, target: Square): Boolean = {
@@ -366,7 +378,7 @@ case class UiController(game: Game, backgroundCanvas: Canvas, comCanvas: Canvas,
     def doc =
       game.gameSquares
         .map(sq => if (!sq.unit.equals(VoidTile)) sq.unit.char else sq.terrain.char)
-        .grouped(RuleRepository.squareX)
+        .grouped(game.board.width)
         .map(_.mkString(" "))
         .mkString("\n")
     val a = dom.document.createElement("a").asInstanceOf[HTMLAnchorElement]

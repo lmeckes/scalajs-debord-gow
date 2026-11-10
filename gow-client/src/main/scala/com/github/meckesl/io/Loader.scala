@@ -49,9 +49,8 @@ object Loader {
   private def read(file: String): String =
     EmbeddedResources.files.getOrElse(file, throw new RuntimeException(s"cannot read $file"))
 
-  def loadScenarios(boardFile: String, xWidth: Int): Future[Boolean] = Future {
-    val files = ScenarioRepository.all.map(_.unitsFile)
-    BoardLoader.loadScenarios(read(boardFile), files.map(f => f -> read(f)).toMap, xWidth)
+  def loadScenarios(): Future[Boolean] = Future {
+    BoardLoader.loadScenarios(ScenarioRepository.files.map(f => f -> read(f)).toMap)
     true
   }
 

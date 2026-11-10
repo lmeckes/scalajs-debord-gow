@@ -11,16 +11,20 @@ object BoardLoader {
   def parseUnits(unitsText: String): Seq[Tile] =
     parse(unitsText).map(u => if (TileRepository.units.contains(u)) u else VoidTile)
 
-  def load(boardText: String, unitsText: String, width: Int): Unit = {
-    RuleRepository.startingTerrain = parse(boardText).map(t => if (TileRepository.terrains.contains(t)) t else VoidTile)
-    RuleRepository.startingUnits = parseUnits(unitsText)
-    RuleRepository.squareX = width
-    RuleRepository.squareY = RuleRepository.startingTerrain.size / width
+  /** Rows are the lines holding tiles (the column header and row labels hold none); the width is the first row's. */
+  def parseBoard(boardText: String): Board = {
+    val rows = boardText.linesIterator.map(parse).filter(_.nonEmpty).toSeq
+    require(rows.forall(_.size == rows.head.size), "board rows differ in length")
+    Board(rows.head.size, rows.flatten.map(t => if (TileRepository.terrains.contains(t)) t else VoidTile))
   }
 
-  /** Loads the terrain and every scenario; unitsByFile maps a scenario's units file to its text. */
-  def loadScenarios(boardText: String, unitsByFile: Map[String, String], width: Int): Unit = {
-    load(boardText, unitsByFile(ScenarioRepository.all.head.unitsFile), width)
-    RuleRepository.scenarioUnits = ScenarioRepository.all.map(s => s.id -> parseUnits(unitsByFile(s.unitsFile))).toMap
+  /** Loads every scenario's board and units; `files` maps a file name to its text. */
+  def loadScenarios(files: Map[String, String]): Unit = {
+    val boards = ScenarioRepository.all.map(s => s.id -> parseBoard(files(s.boardFile))).toMap
+    val units = ScenarioRepository.all.map(s => s.id -> parseUnits(files(s.unitsFile))).toMap
+    ScenarioRepository.all.foreach(s =>
+      require(units(s.id).size == boards(s.id).size, s"${s.unitsFile} does not match ${s.boardFile}"))
+    RuleRepository.scenarioBoards = boards
+    RuleRepository.scenarioUnits = units
   }
 }

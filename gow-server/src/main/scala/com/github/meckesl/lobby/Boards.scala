@@ -11,6 +11,6 @@ object Boards {
       val src = Source.fromResource(s"web/target/scala-2.13/classes/$file")
       try src.mkString finally src.close()
     }
-    BoardLoader.loadScenarios(read("init.board"), ScenarioRepository.all.map(s => s.unitsFile -> read(s.unitsFile)).toMap, 25)
+    BoardLoader.loadScenarios(ScenarioRepository.files.map(f => f -> read(f)).toMap)
   }
 }

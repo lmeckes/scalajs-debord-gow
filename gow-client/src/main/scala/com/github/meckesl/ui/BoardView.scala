@@ -1,7 +1,6 @@
 package com.github.meckesl.ui
 
 import com.github.meckesl.Point
-import com.github.meckesl.repo.RuleRepository
 import org.scalajs.dom
 import org.scalajs.dom.{Touch, TouchEvent, html}
 
@@ -14,12 +13,13 @@ class BoardView(wrap: html.Element, board: html.Element, canvases: Seq[html.Canv
   private def maxZoom: Double = math.max(1.0, 56 / fitTile)
 
   def layout(): Unit = {
+    val b = controller.game.board
     fitTile = math.max(8, math.floor(4 * math.min(
-      wrap.clientWidth.toDouble / RuleRepository.squareX,
-      wrap.clientHeight.toDouble / RuleRepository.squareY)) / 4)
+      wrap.clientWidth.toDouble / b.width,
+      wrap.clientHeight.toDouble / b.height)) / 4)
     zoom = zoom.max(1).min(maxZoom)
     val tile = if (zoom == 1) fitTile else math.floor(4 * fitTile * zoom) / 4
-    val size = new Point(tile * RuleRepository.squareX, tile * RuleRepository.squareY)
+    val size = new Point(tile * b.width, tile * b.height)
     board.style.width = s"${size.x}px"
     board.style.height = s"${size.y}px"
     wrap.classList.toggle("zoomed", zoom > 1)
@@ -189,7 +189,7 @@ class BoardView(wrap: html.Element, board: html.Element, canvases: Seq[html.Canv
       loupe.height = px
     }
     val br = canvases.last.getBoundingClientRect()
-    val mag = math.max(1.5, 44 / (br.width / RuleRepository.squareX))
+    val mag = math.max(1.5, 44 / (br.width / controller.game.board.width))
     val src = loupeSize / mag
     val sx = x - br.left - src / 2
     val sy = y - br.top - src / 2

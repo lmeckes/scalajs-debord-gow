@@ -22,8 +22,9 @@ class ScenarioPicker(root: html.Element, initial: Option[String], onPreview: Sce
   def value: Scenario = scenarios(selected)
 
   private def minimap(s: Scenario): html.Canvas = {
-    val cell = 2.4
-    val (w, h) = (RuleRepository.squareX, RuleRepository.squareY)
+    val board = RuleRepository.scenarioBoards(s.id)
+    val (w, h) = (board.width, board.height)
+    val cell = 48.0 / h
     val ratio = dom.window.devicePixelRatio
     val canvas = el[html.Canvas]("canvas", "minimap")
     canvas.width = math.ceil(w * cell * ratio).toInt
@@ -36,7 +37,7 @@ class ScenarioPicker(root: html.Element, initial: Option[String], onPreview: Sce
       ctx.fillStyle = colour
       ctx.fillRect(i % w + inset, i / w + inset, 1 - 2 * inset, 1 - 2 * inset)
     }
-    RuleRepository.startingTerrain.zipWithIndex.foreach {
+    board.terrain.zipWithIndex.foreach {
       case (Mountain, i) => square(i, 0, "#6b6253")
       case (MountainPass, i) => square(i, 0, "#4a4438")
       case (Fortress, i) => square(i, 0, "#8a7a5a")
@@ -60,7 +61,9 @@ class ScenarioPicker(root: html.Element, initial: Option[String], onPreview: Sce
     sub.textContent = s.description
     text.appendChild(name)
     text.appendChild(sub)
-    Seq(minimap(s), text)
+    val frame = el[html.Span]("span", "minimap-frame")
+    frame.appendChild(minimap(s))
+    Seq(frame, text)
   }
 
   private val button = el[html.Button]("button", "picker-button")
