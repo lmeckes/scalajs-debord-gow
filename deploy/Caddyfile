@@ -1,0 +1,5 @@
+# Replace ":80" with a domain name (e.g. gow.example.org) to get automatic HTTPS.
+{$GOW_SITE::80} {
+	encode gzip
+	reverse_proxy 127.0.0.1:8080
+}

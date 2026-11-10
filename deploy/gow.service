@@ -1,0 +1,21 @@
+[Unit]
+Description=Le Jeu de la Guerre (GoW) server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=gow
+Group=gow
+WorkingDirectory=/opt/gow
+Environment=HOST=127.0.0.1
+Environment=PORT=8080
+ExecStart=/usr/bin/java -Xms128m -Xmx512m -jar /opt/gow/gow-server.jar
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -33,6 +33,20 @@ Open the page, pick a nickname and either:
 The server referees every move. If you reload or lose connection you rejoin your game automatically;
 a player who stays away for 2 minutes forfeits. Nicknames, lobby and games live in memory only.
 
+### Deploying to a VPS
+
+`sbt server/assembly` builds a single runnable jar (`gow-server/target/scala-2.13/gow-server.jar`, client included).
+
+On a fresh Debian 12 server, copy the `deploy/` folder and run once as root:
+```sh
+sudo sh deploy/setup-vps.sh your.domain.example   # installs Java 17, Caddy (automatic HTTPS) and the `gow` systemd service
+```
+Then build and push the jar from your machine (the SSH user needs sudo):
+```sh
+deploy/deploy.sh debian@your.domain.example
+```
+The game listens on 127.0.0.1:8080 behind Caddy; logs are in `journalctl -u gow`.
+
 ## Screenshot
 
 ![Optional Screenshot](gow-client/resources/screenshot.png)
