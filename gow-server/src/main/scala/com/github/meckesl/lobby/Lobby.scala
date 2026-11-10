@@ -30,7 +30,7 @@ class Lobby(forfeitMillis: Long = 120000L, clock: () => Long = () => System.curr
   }
 
   private class Match(val id: String, val red: Guest, val blue: Guest, val scenario: Scenario) {
-    val game = new Game(RuleRepository.scenarioUnits(scenario.id))
+    val game = Game.of(scenario.id)
     def guests: Seq[Guest] = Seq(red, blue)
     def colourOf(g: Guest): Player = if (g eq red) Red else Blue
     def opponentOf(g: Guest): Guest = if (g eq red) blue else red

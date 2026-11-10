@@ -1,6 +1,6 @@
 package com.github.meckesl
 
-import com.github.meckesl.repo.{CardinalityRepository, RuleRepository, TileRepository}
+import com.github.meckesl.repo.{CardinalityRepository, TileRepository}
 import com.github.meckesl.repo.CardinalityRepository._
 import com.github.meckesl.repo.PlayerRepository.{Blue, Neutral, Player, Red}
 import com.github.meckesl.repo.TileRepository._
@@ -11,7 +11,7 @@ case class Square(index: Int, terrain: Tile, g: Game) {
 
   var unit: Tile = VoidTile
   var lastMoveDir: Cardinality = CardinalityRepository.SOURCE
-  val coords: Point = Point.fromLinear(index, RuleRepository.squareX)
+  val coords: Point = Point.fromLinear(index, g.board.width)
   val com: Map[Player, mutable.Set[Cardinality]] = immutable.HashMap(Blue -> mutable.Set[Cardinality](), Red -> mutable.Set[Cardinality]())
 
   def isOnline: Boolean = com(unit.player).nonEmpty || unit.isCom
@@ -177,10 +177,10 @@ case class Square(index: Int, terrain: Tile, g: Game) {
   }
 
   def adjacentSquare(c: Cardinality): Square = {
-    val i = (new Point(c.x, c.y) + coords).toLinear(RuleRepository.squareX)
+    val i = (new Point(c.x, c.y) + coords).toLinear(g.board.width)
     if ((i < g.gameSquares.size && i >= 0) &&
       (!(coords.x == 0 && Set(NW, SW, W).contains(c))) &&
-      (!(coords.x == RuleRepository.squareX - 1 && Seq(NE, SE, E).contains(c))))
+      (!(coords.x == g.board.width - 1 && Seq(NE, SE, E).contains(c))))
       g.gameSquares(i)
     else
       null

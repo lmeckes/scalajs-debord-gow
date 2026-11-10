@@ -8,7 +8,7 @@ import com.github.meckesl.repo.TileRepository.{BlueArsenal, Mountain, RedArsenal
 import scala.collection.mutable
 import scala.util.Random
 
-class Game(startingUnits: Seq[Tile] = RuleRepository.startingUnits) {
+class Game(val board: Board, startingUnits: Seq[Tile]) {
 
   var turnRemainingMoves: Int = RuleRepository.turnMoves
   val turnMovedUnits: mutable.Set[Square] = mutable.Set[Square]()
@@ -19,8 +19,8 @@ class Game(startingUnits: Seq[Tile] = RuleRepository.startingUnits) {
   val capturedUnits: mutable.Seq[Tile] = mutable.Seq[Tile]()
 
   val gameSquares: Seq[Square] =
-    0 until RuleRepository.squareCount map (i => {
-      val sq = Square(i, RuleRepository.startingTerrain(i), this)
+    0 until board.size map (i => {
+      val sq = Square(i, board.terrain(i), this)
       sq.unit = startingUnits(i)
       sq
     })
@@ -110,4 +110,9 @@ class Game(startingUnits: Seq[Tile] = RuleRepository.startingUnits) {
 
   refreshComLayer()
 
+}
+
+object Game {
+  def of(scenarioId: String): Game =
+    new Game(RuleRepository.scenarioBoards(scenarioId), RuleRepository.scenarioUnits(scenarioId))
 }

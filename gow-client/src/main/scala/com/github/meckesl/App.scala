@@ -1,7 +1,7 @@
 package com.github.meckesl
 
 import com.github.meckesl.io.Loader
-import com.github.meckesl.repo.RuleRepository
+import com.github.meckesl.repo.ScenarioRepository
 import com.github.meckesl.ui.{BoardView, InfoPanel, LobbyView, UiController}
 import com.github.meckesl.Game
 import org.scalajs.dom._
@@ -23,15 +23,16 @@ object App {
     val board = getElementById("board").asInstanceOf[html.Div]
     val boardWrap = getElementById("boardWrap").asInstanceOf[html.Element]
 
-    Loader.loadScenarios("init.board", 25).foreach {
+    Loader.loadScenarios().foreach {
       _ =>
-        val game = new Game
+        val game = Game.of(ScenarioRepository.all.head.id)
         val info = new InfoPanel(getElementById("infoPanel").asInstanceOf[html.Element])
         val uiController = UiController(game, backgroundCanvas, comCanvas, terrainCanvas, unitCanvas, overlayCanvas, info)
         import scala.scalajs.js.timers._
         val boardView = new BoardView(boardWrap, board,
           Seq(backgroundCanvas, comCanvas, terrainCanvas, unitCanvas, overlayCanvas), uiController)
         def layout(): Unit = boardView.layout()
+        uiController.onBoardChange = () => layout()
         layout()
         var handle: SetTimeoutHandle = null
         window.onresize = (_: Event) => {
@@ -46,7 +47,7 @@ object App {
         window.onkeydown = (e: KeyboardEvent) => {
           if (e.target.asInstanceOf[Element].tagName != "INPUT") uiController onKeydown e
         }
-        new LobbyView(uiController, game)
+        new LobbyView(uiController)
 
     }
   }

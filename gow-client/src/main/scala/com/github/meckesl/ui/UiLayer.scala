@@ -1,7 +1,7 @@
 package com.github.meckesl.ui
 
 import com.github.meckesl.repo.CardinalityRepository._
-import com.github.meckesl.repo.{CardinalityRepository, RuleRepository}
+import com.github.meckesl.repo.CardinalityRepository
 import com.github.meckesl.{Point, Square}
 import com.github.meckesl.repo.PlayerRepository.Neutral
 import com.github.meckesl.repo.TileRepository.{Fortress, Mountain}
@@ -19,12 +19,13 @@ class UiLayer(canvas: Canvas) {
   private var logicalSize = new Point(canvas.width, canvas.height)
   private var ratio = 1.0
 
-  private def boardSize = new Point(RuleRepository.squareX, RuleRepository.squareY)
+  private var boardSize = new Point(1, 1)
   def size: Point = logicalSize
   def tileSize: Point = size / boardSize
 
-  def resize(s: Point, pixelRatio: Double): Unit = {
+  def resize(s: Point, pixelRatio: Double, squares: Point): Unit = {
     logicalSize = s
+    boardSize = squares
     ratio = pixelRatio
     canvas.width = math.round(s.x * pixelRatio).toInt
     canvas.height = math.round(s.y * pixelRatio).toInt
@@ -84,11 +85,11 @@ class UiLayer(canvas: Canvas) {
     l.strokeStyle = "rgba(40, 32, 20, 0.05)"
     l.lineWidth = 1
     l.beginPath()
-    for (x <- 1 until RuleRepository.squareX) {
+    for (x <- 1 until boardSize.x.toInt) {
       l.moveTo(x * t.x, 0)
       l.lineTo(x * t.x, size.y)
     }
-    for (y <- 1 until RuleRepository.squareY) {
+    for (y <- 1 until boardSize.y.toInt) {
       l.moveTo(0, y * t.y)
       l.lineTo(size.x, y * t.y)
     }

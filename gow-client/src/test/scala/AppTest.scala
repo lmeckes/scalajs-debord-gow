@@ -14,8 +14,8 @@ object AppTest extends TestSuite {
       val game = setupGame(vanilla._1, vanilla._2)
 
       test("boardDimensions") {
-        assert(RuleRepository.startingTerrain.size == 25 * 20)
-        assert(RuleRepository.startingUnits.size == 25 * 20)
+        assert(game.board.width == 25)
+        assert(game.board.height == 20)
       }
 
       test("terrainPlacement") {

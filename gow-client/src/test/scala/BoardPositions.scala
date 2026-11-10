@@ -1,5 +1,5 @@
-import com.github.meckesl.repo.{RuleRepository, TileRepository}
-import com.github.meckesl.{Game, Point, Square}
+import com.github.meckesl.repo.TileRepository
+import com.github.meckesl.{Board, Game, Point, Square}
 import com.github.meckesl.repo.TileRepository.VoidTile
 
 object BoardPositions {
@@ -13,28 +13,19 @@ object BoardPositions {
     val units = u.filter(_ > ' ').filter(TileRepository.all.map(_.char).contains(_))
     assert(units.length.equals(terrain.length))
 
-    RuleRepository.startingTerrain = terrain.map(t => {
+    val board = Board(width, terrain.map(t => {
       val tile = TileRepository.getByChar(t)
       if (TileRepository.terrains.contains(tile)) tile else VoidTile
-    })
-    RuleRepository.startingUnits = units.map(u => {
+    }))
+    game = new Game(board, units.map(u => {
       val tile = TileRepository.getByChar(u)
       if (TileRepository.units.contains(tile)) tile else VoidTile
-    })
-
-    assert(RuleRepository.startingTerrain.size.equals(RuleRepository.startingUnits.size))
-
-    RuleRepository.squareX = width
-    RuleRepository.squareY = RuleRepository.startingTerrain.size / width
-
-    assert((RuleRepository.squareX * RuleRepository.squareY).equals(RuleRepository.startingTerrain.size))
-
-    game = new Game()
+    }))
     game
   }
 
   def get(x: Int, y: Int): Square = {
-    game.gameSquares(new Point(x - 1, y - 1).toLinear(RuleRepository.squareX))
+    game.gameSquares(new Point(x - 1, y - 1).toLinear(game.board.width))
   }
 
   def getWithTurn(x: Int, y: Int): Square = {
