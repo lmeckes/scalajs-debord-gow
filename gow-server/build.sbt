@@ -15,3 +15,6 @@ libraryDependencies ++= Seq(
 testFrameworks += new TestFramework("utest.runner.Framework")
 run / fork := true
 Test / fork := true
+
+assembly / mainClass := Some("com.github.meckesl.Server")
+assembly / assemblyJarName := "gow-server.jar"
