@@ -39,12 +39,14 @@ a player who stays away for 2 minutes forfeits. Nicknames, lobby and games live 
 
 On a fresh Debian 12 server, copy the `deploy/` folder and run once as root:
 ```sh
-sudo sh deploy/setup-vps.sh your.domain.example   # installs Java 17, Caddy (automatic HTTPS) and the `gow` systemd service
+sudo sh deploy/setup-vps.sh your.domain.example "ssh-ed25519 AAAA... deploy-key"
 ```
-Then build and push the jar from your machine (the SSH user needs sudo):
+This installs Java 17, Caddy (automatic HTTPS), the `gow` systemd service and a `gow-deploy` user that may only replace the jar and restart the service.
+Then build and push the jar (as `gow-deploy`, or any user with sudo):
 ```sh
-deploy/deploy.sh debian@your.domain.example
+deploy/deploy.sh gow-deploy@your.domain.example
 ```
+CI does this on every push to `master` once the build passes (`deploy` job in `.github/workflows/scala.yml`); it needs the deploy private key in the `VPS_SSH_KEY` repository secret.
 The game listens on 127.0.0.1:8080 behind Caddy; logs are in `journalctl -u gow`.
 
 ## Screenshot
