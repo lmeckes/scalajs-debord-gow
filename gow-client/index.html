@@ -69,6 +69,7 @@
         }
         #connStatus:empty { display: none; }
         body.offline .online-only { display: none !important; }
+        body:not(.in-game) #unitCard { display: none; }
 
         /* Main layout */
         main { flex: 1; display: flex; gap: 16px; padding: 12px 20px 16px; min-height: 0; }
@@ -503,7 +504,7 @@
                     <button id="leaveBtn"><span data-lang="fr">Retour au salon</span><span data-lang="en">Back to lobby</span></button>
                 </div>
             </div>
-            <div class="card">
+            <div id="unitCard" class="card">
                 <h3><span data-lang="fr">Unité</span><span data-lang="en">Unit</span></h3>
                 <div id="infoPanel"></div>
             </div>
