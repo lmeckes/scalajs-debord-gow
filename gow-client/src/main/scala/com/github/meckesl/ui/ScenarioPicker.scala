@@ -56,9 +56,9 @@ class ScenarioPicker(root: html.Element, initial: Option[String], onPreview: Sce
   private def content(s: Scenario): Seq[dom.Node] = {
     val text = el[html.Span]("span", "picker-text")
     val name = el[html.Span]("span", "picker-name")
-    name.textContent = s.name
+    name.textContent = I18n.scenarioName(s)
     val sub = el[html.Span]("span", "picker-sub")
-    sub.textContent = s.description
+    sub.textContent = I18n.scenarioDescription(s)
     text.appendChild(name)
     text.appendChild(sub)
     val frame = el[html.Span]("span", "minimap-frame")
@@ -80,8 +80,7 @@ class ScenarioPicker(root: html.Element, initial: Option[String], onPreview: Sce
     val option = el[html.LI]("li", "picker-option")
     option.id = s"scenario-${s.id}"
     option.setAttribute("role", "option")
-    content(s).foreach(option.appendChild)
-    option.appendChild(el[html.Span]("span", "picker-check"))
+    renderOption(option, s)
     option.onmousemove = (_: MouseEvent) => if (active != i) highlight(i)
     option.onclick = (_: MouseEvent) => choose(i)
     list.appendChild(option)
@@ -89,6 +88,12 @@ class ScenarioPicker(root: html.Element, initial: Option[String], onPreview: Sce
   }
   root.appendChild(button)
   root.appendChild(list)
+
+  private def renderOption(option: html.LI, s: Scenario): Unit = {
+    option.innerHTML = ""
+    content(s).foreach(option.appendChild)
+    option.appendChild(el[html.Span]("span", "picker-check"))
+  }
 
   private def isOpen = root.classList.contains("open")
 
@@ -161,4 +166,8 @@ class ScenarioPicker(root: html.Element, initial: Option[String], onPreview: Sce
     if (isOpen && !root.contains(e.target.asInstanceOf[dom.Node])) close(focusButton = false))
 
   renderButton()
+  I18n.onChange {
+    options.zip(scenarios).foreach { case (o, s) => renderOption(o, s) }
+    renderButton()
+  }
 }

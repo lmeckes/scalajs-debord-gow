@@ -1,12 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <title>Le Jeu de la Guerre</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <meta name="theme-color" content="#0e1116"/>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='40 40 432 432'%3E%3Cdefs%3E%3ClinearGradient id='gold' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23f0c878'/%3E%3Cstop offset='.55' stop-color='%23d4a24c'/%3E%3Cstop offset='1' stop-color='%239c7232'/%3E%3C/linearGradient%3E%3ClinearGradient id='north' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23c23b40'/%3E%3Cstop offset='1' stop-color='%236e1e22'/%3E%3C/linearGradient%3E%3ClinearGradient id='south' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23163a73'/%3E%3Cstop offset='1' stop-color='%232f6fd0'/%3E%3C/linearGradient%3E%3CclipPath id='field'%3E%3Crect x='72' y='72' width='368' height='368'/%3E%3C/clipPath%3E%3C/defs%3E%3Crect width='512' height='512' rx='104' fill='%230e1116'/%3E%3Cg clip-path='url(%23field)'%3E%3Crect x='72' y='72' width='368' height='184' fill='url(%23north)'/%3E%3Crect x='72' y='256' width='368' height='184' fill='url(%23south)'/%3E%3Cpath d='M108.8 72V440M72 108.8H440M145.6 72V440M72 145.6H440M182.4 72V440M72 182.4H440M219.2 72V440M72 219.2H440M256.0 72V440M72 256.0H440M292.8 72V440M72 292.8H440M329.6 72V440M72 329.6H440M366.4 72V440M72 366.4H440M403.2 72V440M72 403.2H440' stroke='%23fff' stroke-opacity='.10' stroke-width='2'/%3E%3Cpath d='M256 256L556.0 256.0M256 256L468.1 468.1M256 256L256.0 556.0M256 256L43.9 468.1M256 256L-44.0 256.0M256 256L43.9 43.9M256 256L256.0 -44.0M256 256L468.1 43.9' stroke='%230e1116' stroke-opacity='.55' stroke-width='16'/%3E%3Cpath d='M256 256L556.0 256.0M256 256L468.1 468.1M256 256L256.0 556.0M256 256L43.9 468.1M256 256L-44.0 256.0M256 256L43.9 43.9M256 256L256.0 -44.0M256 256L468.1 43.9' stroke='url(%23gold)' stroke-width='6'/%3E%3C/g%3E%3Cpath d='M72 256H440' stroke='%230e1116' stroke-width='6'/%3E%3Crect x='72' y='72' width='368' height='368' fill='none' stroke='url(%23gold)' stroke-width='10'/%3E%3Crect x='52' y='52' width='408' height='408' fill='none' stroke='%23d4a24c' stroke-opacity='.45' stroke-width='3'/%3E%3Ccircle cx='256' cy='256' r='74' fill='%230e1116'/%3E%3Cpolygon points='256.0,144.0 269.0,224.5 335.2,176.8 287.4,242.9 368.0,256.0 287.4,269.0 335.2,335.2 269.0,287.4 256.0,368.0 242.9,287.4 176.8,335.2 224.5,269.0 144.0,256.0 224.5,242.9 176.8,176.8 242.9,224.5' fill='%230e1116' stroke='%230e1116' stroke-width='14' stroke-linejoin='round'/%3E%3Cpolygon points='256.0,152.0 268.2,226.4 329.5,182.4 285.5,243.7 360.0,256.0 285.5,268.2 329.5,329.5 268.2,285.5 256.0,360.0 243.7,285.5 182.4,329.5 226.4,268.2 152.0,256.0 226.4,243.7 182.4,182.4 243.7,226.4' fill='url(%23gold)'/%3E%3Cpolygon points='256.0,152.0 268.2,226.4 329.5,182.4 285.5,243.7 360.0,256.0 285.5,268.2 329.5,329.5 268.2,285.5 256.0,360.0 243.7,285.5 182.4,329.5 226.4,268.2 152.0,256.0 226.4,243.7 182.4,182.4 243.7,226.4' fill='none' stroke='%23fff3d6' stroke-opacity='.5' stroke-width='2'/%3E%3Ccircle cx='256' cy='256' r='15' fill='%230e1116'/%3E%3C/svg%3E"/>
+    <script>
+        try { var l = localStorage.getItem('gow.lang'); if (l === 'en' || l === 'fr') document.documentElement.lang = l; } catch (e) {}
+    </script>
     <style>
+        html[lang="fr"] [data-lang="en"], html[lang="en"] [data-lang="fr"] { display: none !important; }
         :root {
             --bg: #0e1116;
             --surface: rgba(24, 28, 36, 0.72);
@@ -311,6 +315,13 @@
         .modal .row { margin-top: 0; }
 
         #rulesBtn { padding: 6px 12px; font-size: 13px; }
+        .lang-switch { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; flex: none; }
+        .lang-switch button {
+            padding: 6px 8px; font-size: 12px; font-weight: 600; letter-spacing: .04em;
+            border: 0; border-radius: 0; background: transparent; color: var(--muted);
+        }
+        .lang-switch button + button { border-left: 1px solid var(--border); }
+        .lang-switch button[aria-pressed="true"] { background: var(--surface-2); color: var(--accent); }
         /* Rules modal */
         #rulesView { position: fixed; inset: 0; z-index: 100; background: rgba(8, 10, 14, 0.6); }
         .modal.rules {
@@ -416,9 +427,13 @@
             </div>
         </div>
         <div class="topbar-right">
-            <span class="keys">Drag to move or attack &middot; <kbd>Space</kbd> end turn &middot; <kbd>D</kbd> save board</span>
-            <button id="rulesBtn">Rules</button>
-            <div id="connStatus">Connecting...</div>
+            <span class="keys"><span data-lang="fr">Glisser pour déplacer ou attaquer &middot; <kbd>Espace</kbd> fin du tour &middot; <kbd>D</kbd> sauvegarder le plateau</span><span data-lang="en">Drag to move or attack &middot; <kbd>Space</kbd> end turn &middot; <kbd>D</kbd> save board</span></span>
+            <button id="rulesBtn"><span data-lang="fr">Règles</span><span data-lang="en">Rules</span></button>
+            <div class="lang-switch" role="group" aria-label="Langue / Language">
+                <button type="button" data-set-lang="fr" lang="fr" aria-pressed="true" title="Français">FR</button>
+                <button type="button" data-set-lang="en" lang="en" aria-pressed="false" title="English">EN</button>
+            </div>
+            <div id="connStatus"><span data-lang="fr">Connexion…</span><span data-lang="en">Connecting...</span></div>
         </div>
     </header>
     <main>
@@ -436,27 +451,27 @@
                 <div class="me online-only">
                     <div class="avatar" id="meAvatar"></div>
                     <div class="grow">
-                        <div class="me-label">Playing as</div>
+                        <div class="me-label"><span data-lang="fr">Vous jouez sous le nom</span><span data-lang="en">Playing as</span></div>
                         <div class="me-name" id="meName"></div>
                     </div>
-                    <button id="renameBtn" class="link">Change</button>
+                    <button id="renameBtn" class="link"><span data-lang="fr">Modifier</span><span data-lang="en">Change</span></button>
                 </div>
                 <div class="section">
-                    <button id="quickBtn" class="primary block online-only">Quick match</button>
-                    <div class="field-head"><span id="scenarioLabel">Starting position</span><span class="online-only">Private &amp; local games</span></div>
+                    <button id="quickBtn" class="primary block online-only"><span data-lang="fr">Partie rapide</span><span data-lang="en">Quick match</span></button>
+                    <div class="field-head"><span id="scenarioLabel"><span data-lang="fr">Position de départ</span><span data-lang="en">Starting position</span></span><span class="online-only"><span data-lang="fr">Parties privées et locales</span><span data-lang="en">Private &amp; local games</span></span></div>
                     <div id="scenarioPicker" class="picker"></div>
-                    <div class="row"><button id="privateBtn" class="grow online-only">Private game</button><button id="localBtn" class="grow">Local game</button></div>
-                    <div class="row online-only"><input type="text" id="codeInput" placeholder="Game code" maxlength="5"><button id="joinBtn">Join</button></div>
+                    <div class="row"><button id="privateBtn" class="grow online-only"><span data-lang="fr">Partie privée</span><span data-lang="en">Private game</span></button><button id="localBtn" class="grow"><span data-lang="fr">Partie locale</span><span data-lang="en">Local game</span></button></div>
+                    <div class="row online-only"><input type="text" id="codeInput" placeholder="Code de partie" data-fr-placeholder="Code de partie" data-en-placeholder="Game code" maxlength="5"><button id="joinBtn"><span data-lang="fr">Rejoindre</span><span data-lang="en">Join</span></button></div>
                     <div id="searchStatus"></div>
                     <input type="text" id="shareLink" readonly>
-                    <button id="cancelBtn" class="block">Cancel</button>
+                    <button id="cancelBtn" class="block"><span data-lang="fr">Annuler</span><span data-lang="en">Cancel</span></button>
                 </div>
                 <div class="section online-only">
-                    <h3>Online</h3>
+                    <h3><span data-lang="fr">En ligne</span><span data-lang="en">Online</span></h3>
                     <ul id="playerList" class="list"></ul>
                 </div>
                 <div class="section online-only">
-                    <h3>Games in progress</h3>
+                    <h3><span data-lang="fr">Parties en cours</span><span data-lang="en">Games in progress</span></h3>
                     <ul id="gameList" class="list"></ul>
                 </div>
             </div>
@@ -467,19 +482,19 @@
                 <div class="pips-label" id="movesLabel"></div>
                 <div id="opponentStatus"></div>
                 <div class="actions">
-                    <button id="endTurnBtn" class="primary">End turn</button>
-                    <button id="resignBtn" class="danger">Resign</button>
-                    <button id="leaveBtn">Back to lobby</button>
+                    <button id="endTurnBtn" class="primary"><span data-lang="fr">Fin du tour</span><span data-lang="en">End turn</span></button>
+                    <button id="resignBtn" class="danger"><span data-lang="fr">Abandonner</span><span data-lang="en">Resign</span></button>
+                    <button id="leaveBtn"><span data-lang="fr">Retour au salon</span><span data-lang="en">Back to lobby</span></button>
                 </div>
             </div>
             <div class="card">
-                <h3>Unit</h3>
+                <h3><span data-lang="fr">Unité</span><span data-lang="en">Unit</span></h3>
                 <div id="infoPanel"></div>
             </div>
             <div id="chatCard" class="card online-only">
-                <h3>Chat</h3>
+                <h3><span data-lang="fr">Discussion</span><span data-lang="en">Chat</span></h3>
                 <div id="chatLog"></div>
-                <input type="text" id="chatInput" placeholder="Say something&hellip;">
+                <input type="text" id="chatInput" placeholder="Écrivez un message&hellip;" data-fr-placeholder="Écrivez un message&hellip;" data-en-placeholder="Say something&hellip;">
             </div>
         </aside>
     </main>
@@ -488,10 +503,10 @@
     <div class="modal">
         <div class="brand-mark" aria-hidden="true"></div>
         <h1>Le Jeu de la Guerre</h1>
-        <p>Guy Debord's game of war, online. Choose a nickname to enter the lobby.</p>
+        <p><span data-lang="fr">Le jeu de la guerre de Guy Debord, en ligne. Choisissez un pseudo pour entrer dans le salon.</span><span data-lang="en">Guy Debord's game of war, online. Choose a nickname to enter the lobby.</span></p>
         <div class="row">
-            <input type="text" id="nameInput" maxlength="20" placeholder="Nickname">
-            <button id="loginBtn" class="primary">Enter</button>
+            <input type="text" id="nameInput" maxlength="20" placeholder="Pseudo" data-fr-placeholder="Pseudo" data-en-placeholder="Nickname">
+            <button id="loginBtn" class="primary"><span data-lang="fr">Entrer</span><span data-lang="en">Enter</span></button>
         </div>
     </div>
 </div>
@@ -500,12 +515,72 @@
         <div class="rules-head">
             <div class="brand-mark" aria-hidden="true"></div>
             <div style="flex: 1">
-                <h1 id="rulesTitle">How to play</h1>
-                <p>Le Jeu de la Guerre &middot; the rules as played here</p>
+                <h1 id="rulesTitle"><span data-lang="fr">Comment jouer</span><span data-lang="en">How to play</span></h1>
+                <p><span data-lang="fr">Le Jeu de la Guerre &middot; les règles telles qu'elles sont jouées ici</span><span data-lang="en">Le Jeu de la Guerre &middot; the rules as played here</span></p>
             </div>
-            <button id="rulesClose" aria-label="Close">&times;</button>
+            <button id="rulesClose" aria-label="Fermer" data-fr-aria-label="Fermer" data-en-aria-label="Close">&times;</button>
         </div>
-        <div class="rules-body">
+        <div class="rules-body" data-lang="fr">
+            <h2>But du jeu</h2>
+            <p class="lead">Deux armées, le Nord et le Sud, s'affrontent sur une carte de 25&times;20 cases. Vous gagnez en
+                <b>détruisant les deux arsenaux ennemis</b> ou en <b>éliminant toutes les unités combattantes ennemies</b>
+                (infanterie, cavalerie et canons). Le joueur qui commence est tiré au sort.</p>
+
+            <h2>Votre tour</h2>
+            <ul>
+                <li><b>Déplacez jusqu'à 5 unités différentes</b>, chacune une seule fois, en les faisant glisser (sur écran tactile, touchez l'unité puis sa destination). Une unité parcourt au plus
+                    son mouvement dans l'une des 8 directions&nbsp;; elle ne peut pas s'arrêter sur une montagne ni sur une case occupée.</li>
+                <li><b>Attaquez une fois</b> en faisant glisser l'une de vos unités de combat en communication sur un ennemi à sa portée (ou en la touchant, puis l'ennemi). Les relais ne peuvent pas attaquer.</li>
+                <li><b>Prenez un arsenal</b> en déplaçant une unité de combat sur un arsenal ennemi&nbsp;: il est détruit.</li>
+                <li>Appuyez sur <b>Fin du tour</b> (ou <kbd>Espace</kbd>) pour terminer votre tour. Après vos déplacements, vous pouvez
+                    encore attaquer&nbsp;; votre tour se termine après une attaque (réussie ou non) ou la prise d'un arsenal.</li>
+            </ul>
+
+            <h2>Communications</h2>
+            <ul>
+                <li>Les <b>arsenaux</b> émettent des lignes de communication dans les 8 directions&nbsp;; les <b>relais</b> placés sur
+                    une ligne la prolongent, étendant le réseau.</li>
+                <li>Les lignes sont bloquées par les <b>montagnes</b> et les <b>unités ennemies</b>, mais traversent les passes de montagne.</li>
+                <li>Une unité hors du réseau est <b>coupée</b> (affichée en gris)&nbsp;: elle ne peut pas bouger et ne compte pas au combat.
+                    Gardez votre armée reliée, et tentez de couper les lignes ennemies.</li>
+            </ul>
+
+            <h2>Combat</h2>
+            <ul>
+                <li><b>Attaque</b> = l'attaque de toutes les unités ennemies en communication alignées avec la cible (en ligne droite ou
+                    en diagonale à 45&deg;) et assez proches pour l'atteindre avec leur portée.</li>
+                <li><b>Défense</b> = la défense de toutes les unités amies en communication alignées avec la cible, à leur propre portée. Un relais ajoute sa propre défense lorsqu'il est la cible.</li>
+                <li><b>Charge de cavalerie</b>&nbsp;: +3 pour chaque cavalier en communication directement au contact de la cible ou dans une ligne droite continue de 4 cavaliers au plus qui y mène (tous comptent, même au-delà de leur portée). Pas contre une forteresse ou une passe de montagne, ni depuis une forteresse.</li>
+                <li>Les montagnes bloquent les lignes de tir. Pendant que vous visez une cible, le panneau latéral affiche les deux totaux et le résultat attendu.</li>
+            </ul>
+            <div class="outcomes">
+                <div class="safe"><b>Attaque &le; Défense</b>Repoussée, rien ne se passe</div>
+                <div class="back"><b>Attaque = Défense + 1</b>La cible doit reculer d'une case au début de son prochain tour&nbsp;; si elle ne peut pas, elle est retirée</div>
+                <div class="kill"><b>Attaque &ge; Défense + 2</b>La cible est détruite</div>
+            </div>
+
+            <h2>Unités</h2>
+            <table>
+                <thead><tr><th>Unité</th><th class="n">Mouv.</th><th class="n">Portée</th><th class="n">Attaque</th><th class="n">Défense</th><th></th></tr></thead>
+                <tbody>
+                <tr><td><img src="target/scala-2.13/classes/tiles/i/0.png" alt="">Infanterie</td><td class="n">1</td><td class="n">2</td><td class="n">4</td><td class="n">6</td><td class="note">Solide unité de ligne</td></tr>
+                <tr><td><img src="target/scala-2.13/classes/tiles/v/0.png" alt="">Cavalerie</td><td class="n">2</td><td class="n">2</td><td class="n">4</td><td class="n">5</td><td class="note">Charge +3&nbsp;; doit s'arrêter sur la première case hors communication</td></tr>
+                <tr><td><img src="target/scala-2.13/classes/tiles/c/0.png" alt="">Canon</td><td class="n">1</td><td class="n">3</td><td class="n">5</td><td class="n">8</td><td class="note">Plus longue portée</td></tr>
+                <tr><td><img src="target/scala-2.13/classes/tiles/n/0.png" alt="">Canon rapide</td><td class="n">2</td><td class="n">3</td><td class="n">5</td><td class="n">8</td><td class="note">Artillerie à cheval</td></tr>
+                <tr><td><img src="target/scala-2.13/classes/tiles/r/0.png" alt="">Relais</td><td class="n">1</td><td class="n">&ndash;</td><td class="n">0</td><td class="n">1</td><td class="note">Prolonge les communications</td></tr>
+                <tr><td><img src="target/scala-2.13/classes/tiles/e/0.png" alt="">Relais rapide</td><td class="n">2</td><td class="n">&ndash;</td><td class="n">0</td><td class="n">1</td><td class="note">Relais plus rapide</td></tr>
+                <tr><td><img src="target/scala-2.13/classes/tiles/a/0.png" alt="">Arsenal</td><td class="n">&ndash;</td><td class="n">&ndash;</td><td class="n">0</td><td class="n">0</td><td class="note">Source des communications&nbsp;; immobile</td></tr>
+                </tbody>
+            </table>
+
+            <h2>Terrain</h2>
+            <div class="rules-grid">
+                <div class="rules-tile"><b>Montagne</b>Infranchissable. Bloque les déplacements, les attaques et les communications.</div>
+                <div class="rules-tile"><b>Passe de montagne</b>Laisse passer les unités et les communications. +2 en défense pour l'infanterie et les canons.</div>
+                <div class="rules-tile"><b>Forteresse</b>Peut être occupée par les deux camps. +4 en défense pour l'infanterie et les canons&nbsp;; pas de charge de cavalerie contre elle.</div>
+            </div>
+        </div>
+        <div class="rules-body" data-lang="en">
             <h2>Goal</h2>
             <p class="lead">Two armies, North and South, face each other on a 25&times;20 map. You win by
                 <b>destroying both enemy arsenals</b> or <b>eliminating every enemy fighting unit</b>
@@ -566,8 +641,8 @@
             </div>
         </div>
         <div class="rules-foot">
-            <a href="https://github.com/meckesl/scalajs-debord-gow/blob/master/rules.md" target="_blank" rel="noopener">Full rules (French) &#8599;</a>
-            <button id="rulesOk" class="primary">Got it</button>
+            <a href="https://github.com/meckesl/scalajs-debord-gow/blob/master/rules.md" target="_blank" rel="noopener"><span data-lang="fr">Règles complètes &#8599;</span><span data-lang="en">Full rules (French) &#8599;</span></a>
+            <button id="rulesOk" class="primary"><span data-lang="fr">Compris</span><span data-lang="en">Got it</span></button>
         </div>
     </div>
 </div>
