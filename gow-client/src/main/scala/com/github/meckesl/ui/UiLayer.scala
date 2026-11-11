@@ -11,8 +11,26 @@ import org.scalajs.dom.HTMLImageElement
 
 import scala.scalajs.js
 
+object UiLayer {
+
+  /** Stable per-square pseudo-random value in [0, 1). */
+  def noise(seed: Int, k: Int): Double = {
+    var h = seed * 374761393 + k * 668265263
+    h = (h ^ (h >>> 13)) * 1274126177
+    ((h ^ (h >>> 16)) & 0xffff) / 65536.0
+  }
+
+  /** Source-pixel height that maps to 0.9 tile; all unit tiles are drawn at this common scale. */
+  val unitArtHeight = 500.0
+
+  /** Stable off-centre nudge (in tiles) so units don't stand on a perfect grid. */
+  def unitOffset(squareIndex: Int): Point =
+    new Point((noise(squareIndex, 11) - 0.5) * 0.2, (noise(squareIndex, 12) - 0.5) * 0.12)
+}
+
 /** One stacked board canvas, drawn in CSS pixels and backed at the device pixel ratio. */
 class UiLayer(canvas: Canvas) {
+  import UiLayer.noise
 
   private val l = canvas.getContext("2d").asInstanceOf[dom.CanvasRenderingContext2D]
 
@@ -73,6 +91,18 @@ class UiLayer(canvas: Canvas) {
       l.restore()
     } else
       l.drawImage(image, x, y, w, h)
+  }
+
+  /** Unit art shares one scale (`unitArtHeight` source px = 0.9 tile) so figures keep their relative sizes. */
+  private def drawUnitArt(image: HTMLImageElement, pos: Point, jitter: Double, flip: Boolean): Unit = {
+    val t = tileSize
+    val scale = math.min(t.y * 0.9 / UiLayer.unitArtHeight, t.x * 1.05 / image.naturalWidth) * jitter
+    val (w, h) = (image.naturalWidth * scale, image.naturalHeight * scale)
+    l.save()
+    l.translate(pos.x + t.x / 2, pos.y + t.y * 0.95)
+    if (flip) l.scale(-1, 1)
+    l.drawImage(image, -w / 2, -h, w, h)
+    l.restore()
   }
 
   def clearLayer(): Unit = {
@@ -238,13 +268,6 @@ class UiLayer(canvas: Canvas) {
     paint("rgb(232, 222, 196)")
   }
 
-  /** Stable per-square pseudo-random value in [0, 1). */
-  private def noise(seed: Int, k: Int): Double = {
-    var h = seed * 374761393 + k * 668265263
-    h = (h ^ (h >>> 13)) * 1274126177
-    ((h ^ (h >>> 16)) & 0xffff) / 65536.0
-  }
-
   /** Mountains get a unique flip, tilt, size, offset and shade so ridges don't look stamped. */
   private def drawMountain(sq: Square, image: HTMLImageElement): Unit = {
     val t = tileSize
@@ -275,7 +298,7 @@ class UiLayer(canvas: Canvas) {
     }
     tileUnitBase(sq, pos)
     shadow(Color.Shadow, t.x * 0.1, t.x * 0.04, t.y * 0.05)
-    drawFitted(image, pos, t, 0.9, hasUnitMovedEastwards(sq))
+    drawUnitArt(image, pos, 0.95 + noise(sq.index, 13) * 0.1, hasUnitMovedEastwards(sq))
     l.restore()
   }
 

@@ -76,9 +76,11 @@ case class UiController(var game: Game, backgroundCanvas: Canvas, comCanvas: Can
     case Some(a) if a.square == sq.index =>
       val t = ((time - a.start) / animationMs).min(1.0)
       val eased = 1 - math.pow(1 - t, 3)
-      a.from + (sq.coords - a.from) * eased
-    case _ => sq.coords
+      a.from + (restingPosition(sq) - a.from) * eased
+    case _ => restingPosition(sq)
   }
+
+  private def restingPosition(sq: Square): Point = sq.coords + UiLayer.unitOffset(sq.index)
 
   private def drawUnits(): Unit = {
     val time = now
@@ -124,11 +126,11 @@ case class UiController(var game: Game, backgroundCanvas: Canvas, comCanvas: Can
     uiOverlay.clearLayer()
     event.foreach {
       case GameEvent.Moved(from, to) =>
-        animation = Some(MoveAnimation(to, game.gameSquares(from).coords, now))
+        animation = Some(MoveAnimation(to, restingPosition(game.gameSquares(from)), now))
         play(audioChannel2, Loader.getSoundUrl(game.gameSquares(to), "move"))
       case GameEvent.Attacked(from, _, result) if result > 0 => play(audioChannel2, Loader.getSoundUrl(game.gameSquares(from), "attack"))
       case GameEvent.ArsenalTaken(from, to) =>
-        animation = Some(MoveAnimation(to, game.gameSquares(from).coords, now))
+        animation = Some(MoveAnimation(to, restingPosition(game.gameSquares(from)), now))
         play(audioChannel2, Loader.getSoundUrl(game.gameSquares(to), "attack"))
       case _ =>
     }
