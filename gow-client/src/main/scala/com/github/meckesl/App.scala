@@ -2,7 +2,7 @@ package com.github.meckesl
 
 import com.github.meckesl.io.Loader
 import com.github.meckesl.repo.ScenarioRepository
-import com.github.meckesl.ui.{BoardView, InfoPanel, LobbyView, UiController}
+import com.github.meckesl.ui.{BoardView, I18n, InfoPanel, LobbyView, UiController}
 import com.github.meckesl.Game
 import org.scalajs.dom._
 import org.scalajs.dom.document._
@@ -13,6 +13,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object App {
 
   def main(args: Array[String]): Unit = {
+    I18n.init()
 
     def getCanvas(c: String) = getElementById(c).asInstanceOf[html.Canvas]
     val backgroundCanvas = getCanvas("backgroundCanvas")

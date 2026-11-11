@@ -59,8 +59,12 @@ class LobbyView(ui: UiController) {
   private var local = false
   private var colour: Option[Char] = None
   private var names: Map[Char, String] = Map()
-  private var result: Option[String] = None
-  private var scenarioName = ""
+  private var outcome: Option[(Char, String)] = None
+  private def result: Option[String] = outcome.map { case (w, reason) => describeResult(w, reason) }
+  private var scenario: Option[Scenario] = None
+  private var connText: Option[() => String] = None
+  private var searchText: () => String = () => ""
+  private var lobby: LobbyUpdate = LobbyUpdate(Nil, Nil)
   private var opponentDeadline: Option[Double] = None
 
   private var everConnected = false
@@ -69,24 +73,29 @@ class LobbyView(ui: UiController) {
     onOpen = () => {
       everConnected = true
       dom.document.body.classList.remove("offline")
-      connStatus.textContent = ""
+      setConn("")
       stored("gow.name") match {
         case Some(name) => client.send(Hello(name, token))
         case None => showLogin()
       }
     },
     onMessage = handle,
-    onClosed = () => if (everConnected) connStatus.textContent = "Connection lost, reconnecting..." else showOffline()
+    onClosed = () => if (everConnected) setConn(I18n.t("Connexion perdue, reconnexion…", "Connection lost, reconnecting...")) else showOffline()
   )
 
   /** Without a server only local games are available; online controls are hidden by the `offline` class. */
   private def showOffline(): Unit = {
-    connStatus.textContent = "Offline: local games only"
+    setConn(I18n.t("Hors ligne : parties locales uniquement", "Offline: local games only"))
     dom.document.body.classList.add("offline")
     showLobby()
   }
 
-  private def colourName(c: Char) = if (c == 'r') "Red" else "Blue"
+  private def colourName(c: Char) = I18n.colour(c)
+
+  private def setConn(text: => String): Unit = {
+    connText = Some(() => text)
+    connStatus.textContent = text
+  }
 
   private def showLogin(): Unit = {
     show(loginView, visible = true)
@@ -109,9 +118,10 @@ class LobbyView(ui: UiController) {
     }
   }
 
-  private def setSearching(text: String, link: Option[String] = None): Unit = {
+  private def setSearching(text: => String, link: Option[String] = None): Unit = {
+    searchText = () => text
     searchStatus.textContent = text
-    show(cancelBtn, text.nonEmpty)
+    show(cancelBtn, searchStatus.textContent.nonEmpty)
     show(shareLink, link.nonEmpty)
     shareLink.value = link.getOrElse("")
   }
@@ -134,16 +144,24 @@ class LobbyView(ui: UiController) {
     val item = li("")
     item.appendChild(span("", if (status == "idle") "status-dot" else "status-dot busy"))
     item.appendChild(span(name, ""))
-    item.appendChild(span(status, "pill-status"))
+    item.appendChild(span(I18n.playerStatus(status), "pill-status"))
     item
   }
 
   private def gameItem(red: String, blue: String): html.LI = {
     val item = li("")
     item.appendChild(span(red, "team-name red"))
-    item.appendChild(span("vs", "vs-small"))
+    item.appendChild(span(I18n.t("contre", "vs"), "vs-small"))
     item.appendChild(span(blue, "team-name blue"))
     item
+  }
+
+  private def renderLobbyLists(): Unit = {
+    playerList.innerHTML = ""
+    lobby.players.foreach(p => playerList.appendChild(playerItem(p.name, p.status)))
+    gameList.innerHTML = ""
+    if (lobby.games.isEmpty) gameList.appendChild(li(I18n.t("Aucune partie en cours", "No games right now"), "empty"))
+    lobby.games.foreach(g => gameList.appendChild(gameItem(g.red, g.blue)))
   }
 
   private def showToast(text: String): Unit = {
@@ -156,13 +174,20 @@ class LobbyView(ui: UiController) {
   private def renderGame(): Unit = {
     val turn = game.turnPlayer.c
     val title =
-      if (local) "Local game"
-      else colour.map(c => s"You play ${colourName(c)} against ${names.getOrElse(if (c == 'r') 'b' else 'r', "?")}").getOrElse("")
+      if (local) I18n.t("Partie locale", "Local game")
+      else colour.map { c =>
+        val opponent = names.getOrElse(if (c == 'r') 'b' else 'r', "?")
+        I18n.t(s"Vous jouez ${colourName(c)} contre $opponent", s"You play ${colourName(c)} against $opponent")
+      }.getOrElse("")
+    val scenarioName = scenario.map(I18n.scenarioName).getOrElse("")
     gameTitle.textContent = if (scenarioName.nonEmpty) s"$title · $scenarioName" else title
     gameStatus.textContent = result.getOrElse {
-      if (local) s"${colourName(turn)} to play"
-      else if (colour.contains(turn)) "Your turn"
-      else s"${names.getOrElse(turn, "Opponent")} is playing..."
+      if (local) I18n.t(s"Au tour de ${colourName(turn)}", s"${colourName(turn)} to play")
+      else if (colour.contains(turn)) I18n.t("À vous de jouer", "Your turn")
+      else {
+        val who = names.getOrElse(turn, I18n.t("L'adversaire", "Opponent"))
+        I18n.t(s"$who joue…", s"$who is playing...")
+      }
     }
     turnDot.className = if (result.isEmpty) turn.toString else ""
     movePips.className = turn.toString
@@ -173,14 +198,17 @@ class LobbyView(ui: UiController) {
       }
     movesLabel.textContent =
       if (result.nonEmpty) ""
-      else if (game.forcedRetreat.isDefined) "Retreat the attacked unit first"
-      else s"${game.turnRemainingMoves} of ${RuleRepository.turnMoves} moves left"
+      else if (game.forcedRetreat.isDefined) I18n.t("Faites d'abord reculer l'unité attaquée", "Retreat the attacked unit first")
+      else {
+        val (left, total) = (game.turnRemainingMoves, RuleRepository.turnMoves)
+        I18n.t(s"$left ${if (left > 1) "déplacements restants" else "déplacement restant"} sur $total", s"$left of $total moves left")
+      }
     if (result.isEmpty && inGame) dom.document.body.setAttribute("data-turn", turn.toString)
     else dom.document.body.removeAttribute("data-turn")
     show(endTurnBtn, result.isEmpty && ui.canAct && game.forcedRetreat.isEmpty)
     opponentStatus.textContent = opponentDeadline.filter(_ => result.isEmpty).map { deadline =>
       val secs = ((deadline - System.currentTimeMillis()) / 1000).toInt.max(0)
-      s"Opponent disconnected, they forfeit in ${secs}s"
+      I18n.t(s"Adversaire déconnecté, forfait dans ${secs} s", s"Opponent disconnected, they forfeit in ${secs}s")
     }.getOrElse("")
     show(resignBtn, !local && result.isEmpty)
     show(leaveBtn, local || result.nonEmpty)
@@ -189,25 +217,38 @@ class LobbyView(ui: UiController) {
   private def enterGame(isLocal: Boolean): Unit = {
     inGame = true
     local = isLocal
-    result = None
+    outcome = None
     opponentDeadline = None
     setSearching("")
     showLobby()
   }
 
+  private def describeResult(winner: Char, reason: String): String = {
+    val you = !local && colour.contains(winner)
+    val who = if (local) colourName(winner) else names.getOrElse(winner, colourName(winner))
+    if (I18n.isFrench) {
+      val how = reason match {
+        case "victory" => ""
+        case "resignation" => " par abandon"
+        case "forfeit" => " par forfait"
+        case other => s" ($other)"
+      }
+      (if (you) "Vous avez gagné" else s"$who a gagné") + how
+    } else s"${if (you) "You" else who} won by $reason"
+  }
+
   private def finish(winner: Char, reason: String): Unit = {
-    val who = if (local) colourName(winner) else if (colour.contains(winner)) "You" else names.getOrElse(winner, colourName(winner))
-    result = Some(s"$who won by $reason")
+    outcome = Some((winner, reason))
     ui.controls = _ => false
     renderGame()
   }
 
   private def startLocal(): Unit = {
-    val scenario = scenarioPicker.value
-    val localGame = Game.of(scenario.id)
+    val picked = scenarioPicker.value
+    val localGame = Game.of(picked.id)
     ui.setBoard(localGame.board)
     enterGame(isLocal = true)
-    scenarioName = scenario.name
+    scenario = Some(picked)
     colour = None
     ui.controls = _ => result.isEmpty
     ui.onAction = action =>
@@ -260,32 +301,30 @@ class LobbyView(ui: UiController) {
         client.send(JoinPrivate(code))
       }
 
-    case LobbyUpdate(players, games) =>
-      playerList.innerHTML = ""
-      players.foreach(p => playerList.appendChild(playerItem(p.name, p.status)))
-      gameList.innerHTML = ""
-      if (games.isEmpty) gameList.appendChild(li("No games right now", "empty"))
-      games.foreach(g => gameList.appendChild(gameItem(g.red, g.blue)))
+    case update: LobbyUpdate =>
+      lobby = update
+      renderLobbyLists()
 
     case ChatMessage(from, text) => appendChat(from, text)
 
-    case Searching => setSearching("Searching for an opponent...")
+    case Searching => setSearching(I18n.t("Recherche d'un adversaire…", "Searching for an opponent..."))
 
     case PrivateCreated(code) =>
       val location = dom.window.location
-      setSearching(s"Private game $code: waiting for your friend. Share this link:",
+      setSearching(I18n.t(s"Partie privée $code : en attente de votre ami. Partagez ce lien :",
+        s"Private game $code: waiting for your friend. Share this link:"),
         Some(s"${location.origin}${location.pathname}?join=$code"))
 
     case SearchCancelled => setSearching("")
 
-    case MatchStarted(_, you, red, blue, scenario, state) =>
+    case MatchStarted(_, you, red, blue, scenarioId, state) =>
       enterGame(isLocal = false)
-      scenarioName = ScenarioRepository.byId(scenario).map(_.name).getOrElse("")
+      scenario = ScenarioRepository.byId(scenarioId)
       colour = Some(you)
       names = Map('r' -> red, 'b' -> blue)
       ui.controls = p => result.isEmpty && colour.contains(p.c)
       ui.onAction = action => client.send(Act(action))
-      RuleRepository.scenarioBoards.get(scenario).foreach(ui.setBoard)
+      RuleRepository.scenarioBoards.get(scenarioId).foreach(ui.setBoard)
       ui.showState(state, None)
 
     case GameUpdate(state, event) => ui.showState(state, Some(event))
@@ -297,21 +336,21 @@ class LobbyView(ui: UiController) {
     case GameOver(winner, reason) => if (!local) finish(winner, reason)
 
     case ServerError(message) =>
-      if (inGame) gameStatus.textContent = message
-      else setSearching(message)
+      if (inGame) gameStatus.textContent = I18n.serverMessage(message)
+      else setSearching(I18n.serverMessage(message))
 
     case SessionReplaced =>
       client.stop()
-      connStatus.textContent = "This game is open in another window."
+      setConn(I18n.t("Cette partie est ouverte dans une autre fenêtre.", "This game is open in another window."))
   }
 
   ui.onStateChange = () => renderGame()
   ui.onEvent = {
-    case GameEvent.Attacked(_, _, 2) => showToast("Attack succeeded: unit destroyed")
-    case GameEvent.Attacked(_, _, 1) => showToast("Attack succeeded: unit must retreat")
-    case GameEvent.Attacked(_, _, 3) => showToast("Attack succeeded: unit could not retreat and was removed")
-    case GameEvent.Attacked(_, _, _) => showToast("Attack repelled")
-    case GameEvent.ArsenalTaken(_, _) => showToast("Arsenal captured")
+    case GameEvent.Attacked(_, _, 2) => showToast(I18n.t("Attaque réussie : unité détruite", "Attack succeeded: unit destroyed"))
+    case GameEvent.Attacked(_, _, 1) => showToast(I18n.t("Attaque réussie : l'unité doit reculer", "Attack succeeded: unit must retreat"))
+    case GameEvent.Attacked(_, _, 3) => showToast(I18n.t("Attaque réussie : l'unité n'a pas pu reculer et a été retirée", "Attack succeeded: unit could not retreat and was removed"))
+    case GameEvent.Attacked(_, _, _) => showToast(I18n.t("Attaque repoussée", "Attack repelled"))
+    case GameEvent.ArsenalTaken(_, _) => showToast(I18n.t("Arsenal pris", "Arsenal captured"))
     case _ =>
   }
   endTurnBtn.onclick = (_: Event) => ui.endTurn()
@@ -325,7 +364,7 @@ class LobbyView(ui: UiController) {
   el[html.Button]("joinBtn").onclick = (_: Event) => if (codeInput.value.trim.nonEmpty) client.send(JoinPrivate(codeInput.value))
   el[html.Button]("localBtn").onclick = (_: Event) => startLocal()
   el[html.Button]("renameBtn").onclick = (_: Event) => showLogin()
-  resignBtn.onclick = (_: Event) => if (dom.window.confirm("Resign this game?")) client.send(Resign)
+  resignBtn.onclick = (_: Event) => if (dom.window.confirm(I18n.t("Abandonner cette partie ?", "Resign this game?"))) client.send(Resign)
   leaveBtn.onclick = (_: Event) => leaveGame()
   chatInput.onkeydown = (e: KeyboardEvent) =>
     if (e.key == "Enter" && chatInput.value.trim.nonEmpty) {
@@ -339,5 +378,11 @@ class LobbyView(ui: UiController) {
   setSearching("")
   show(gameView, visible = false)
   if (!client.available) showOffline()
+  I18n.onChange {
+    connText.foreach(f => connStatus.textContent = f())
+    searchStatus.textContent = searchText()
+    renderLobbyLists()
+    if (inGame) renderGame()
+  }
   setInterval(1000)(if (opponentDeadline.nonEmpty && inGame) renderGame())
 }
