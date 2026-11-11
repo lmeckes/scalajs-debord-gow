@@ -20,6 +20,9 @@ object UiLayer {
     ((h ^ (h >>> 16)) & 0xffff) / 65536.0
   }
 
+  /** Source-pixel height that maps to 0.9 tile; all unit tiles are drawn at this common scale. */
+  val unitArtHeight = 500.0
+
   /** Stable off-centre nudge (in tiles) so units don't stand on a perfect grid. */
   def unitOffset(squareIndex: Int): Point =
     new Point((noise(squareIndex, 11) - 0.5) * 0.2, (noise(squareIndex, 12) - 0.5) * 0.12)
@@ -88,6 +91,18 @@ class UiLayer(canvas: Canvas) {
       l.restore()
     } else
       l.drawImage(image, x, y, w, h)
+  }
+
+  /** Unit art shares one scale (`unitArtHeight` source px = 0.9 tile) so figures keep their relative sizes. */
+  private def drawUnitArt(image: HTMLImageElement, pos: Point, jitter: Double, flip: Boolean): Unit = {
+    val t = tileSize
+    val scale = math.min(t.y * 0.9 / UiLayer.unitArtHeight, t.x * 1.05 / image.naturalWidth) * jitter
+    val (w, h) = (image.naturalWidth * scale, image.naturalHeight * scale)
+    l.save()
+    l.translate(pos.x + t.x / 2, pos.y + t.y * 0.95)
+    if (flip) l.scale(-1, 1)
+    l.drawImage(image, -w / 2, -h, w, h)
+    l.restore()
   }
 
   def clearLayer(): Unit = {
@@ -283,7 +298,7 @@ class UiLayer(canvas: Canvas) {
     }
     tileUnitBase(sq, pos)
     shadow(Color.Shadow, t.x * 0.1, t.x * 0.04, t.y * 0.05)
-    drawFitted(image, pos, t, 0.86 + noise(sq.index, 13) * 0.08, hasUnitMovedEastwards(sq))
+    drawUnitArt(image, pos, 0.95 + noise(sq.index, 13) * 0.1, hasUnitMovedEastwards(sq))
     l.restore()
   }
 
