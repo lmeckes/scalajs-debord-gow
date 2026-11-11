@@ -69,6 +69,7 @@
         }
         #connStatus:empty { display: none; }
         body.offline .online-only { display: none !important; }
+        body:not(.in-game) #unitCard { display: none; }
 
         /* Main layout */
         main { flex: 1; display: flex; gap: 16px; padding: 12px 20px 16px; min-height: 0; }
@@ -207,6 +208,19 @@
             animation: spin 0.8s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        #privateBtn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+        #privateBtn .chevron {
+            width: 6px; height: 6px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+            transform: translateY(-2px) rotate(45deg); transition: transform 0.15s ease; opacity: 0.7;
+        }
+        #privateBtn[aria-expanded=true] { border-color: rgba(212, 162, 76, 0.5); }
+        #privateBtn[aria-expanded=true] .chevron { transform: translateY(1px) rotate(-135deg); }
+        .private-panel {
+            display: none; padding: 10px; border: 1px solid var(--border); border-radius: 10px;
+            background: rgba(0, 0, 0, 0.18);
+        }
+        .private-panel.open { display: block; }
+        .private-panel > * + * { margin-top: 8px; }
         #shareLink { margin-top: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
         #cancelBtn { margin-top: 8px; }
 
@@ -460,8 +474,11 @@
                     <button id="quickBtn" class="primary block online-only"><span data-lang="fr">Partie rapide</span><span data-lang="en">Quick match</span></button>
                     <div class="field-head"><span id="scenarioLabel"><span data-lang="fr">Position de départ</span><span data-lang="en">Starting position</span></span><span class="online-only"><span data-lang="fr">Parties privées et locales</span><span data-lang="en">Private &amp; local games</span></span></div>
                     <div id="scenarioPicker" class="picker"></div>
-                    <div class="row"><button id="privateBtn" class="grow online-only"><span data-lang="fr">Partie privée</span><span data-lang="en">Private game</span></button><button id="localBtn" class="grow"><span data-lang="fr">Partie locale</span><span data-lang="en">Local game</span></button></div>
-                    <div class="row online-only"><input type="text" id="codeInput" placeholder="Code de partie" data-fr-placeholder="Code de partie" data-en-placeholder="Game code" maxlength="5"><button id="joinBtn"><span data-lang="fr">Rejoindre</span><span data-lang="en">Join</span></button></div>
+                    <div class="row"><button id="privateBtn" class="grow online-only" aria-expanded="false" aria-controls="privatePanel"><span data-lang="fr">Partie privée</span><span data-lang="en">Private game</span><span class="chevron" aria-hidden="true"></span></button><button id="localBtn" class="grow"><span data-lang="fr">Partie locale</span><span data-lang="en">Local game</span></button></div>
+                    <div id="privatePanel" class="private-panel online-only">
+                        <button id="createPrivateBtn" class="block"><span data-lang="fr">Nouvelle partie privée</span><span data-lang="en">New private game</span></button>
+                        <div class="row"><input type="text" id="codeInput" placeholder="Code de la partie" data-fr-placeholder="Code de la partie" data-en-placeholder="Game code" maxlength="5"><button id="joinBtn"><span data-lang="fr">Rejoindre</span><span data-lang="en">Join</span></button></div>
+                    </div>
                     <div id="searchStatus"></div>
                     <input type="text" id="shareLink" readonly>
                     <button id="cancelBtn" class="block"><span data-lang="fr">Annuler</span><span data-lang="en">Cancel</span></button>
@@ -487,7 +504,7 @@
                     <button id="leaveBtn"><span data-lang="fr">Retour au salon</span><span data-lang="en">Back to lobby</span></button>
                 </div>
             </div>
-            <div class="card">
+            <div id="unitCard" class="card">
                 <h3><span data-lang="fr">Unité</span><span data-lang="en">Unit</span></h3>
                 <div id="infoPanel"></div>
             </div>

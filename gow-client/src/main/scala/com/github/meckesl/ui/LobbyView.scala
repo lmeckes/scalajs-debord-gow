@@ -27,6 +27,7 @@ class LobbyView(ui: UiController) {
   private val meName = el[html.Element]("meName")
   private val quickBtn = el[html.Button]("quickBtn")
   private val privateBtn = el[html.Button]("privateBtn")
+  private val privatePanel = el[html.Div]("privatePanel")
   private val cancelBtn = el[html.Button]("cancelBtn")
   private val codeInput = el[html.Input]("codeInput")
   private val searchStatus = el[html.Div]("searchStatus")
@@ -359,7 +360,11 @@ class LobbyView(ui: UiController) {
   nameInput.onkeydown = (e: KeyboardEvent) => if (e.key == "Enter") login()
   nameInput.value = stored("gow.name").getOrElse("")
   quickBtn.onclick = (_: Event) => client.send(QuickMatch)
-  privateBtn.onclick = (_: Event) => client.send(CreatePrivate(scenarioPicker.value.id))
+  privateBtn.onclick = (_: Event) => {
+    val open = privatePanel.classList.toggle("open")
+    privateBtn.setAttribute("aria-expanded", open.toString)
+  }
+  el[html.Button]("createPrivateBtn").onclick = (_: Event) => client.send(CreatePrivate(scenarioPicker.value.id))
   cancelBtn.onclick = (_: Event) => client.send(CancelSearch)
   el[html.Button]("joinBtn").onclick = (_: Event) => if (codeInput.value.trim.nonEmpty) client.send(JoinPrivate(codeInput.value))
   el[html.Button]("localBtn").onclick = (_: Event) => startLocal()
