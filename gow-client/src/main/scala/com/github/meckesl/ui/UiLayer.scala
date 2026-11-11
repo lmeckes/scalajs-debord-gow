@@ -11,8 +11,23 @@ import org.scalajs.dom.HTMLImageElement
 
 import scala.scalajs.js
 
+object UiLayer {
+
+  /** Stable per-square pseudo-random value in [0, 1). */
+  def noise(seed: Int, k: Int): Double = {
+    var h = seed * 374761393 + k * 668265263
+    h = (h ^ (h >>> 13)) * 1274126177
+    ((h ^ (h >>> 16)) & 0xffff) / 65536.0
+  }
+
+  /** Stable off-centre nudge (in tiles) so units don't stand on a perfect grid. */
+  def unitOffset(squareIndex: Int): Point =
+    new Point((noise(squareIndex, 11) - 0.5) * 0.2, (noise(squareIndex, 12) - 0.5) * 0.12)
+}
+
 /** One stacked board canvas, drawn in CSS pixels and backed at the device pixel ratio. */
 class UiLayer(canvas: Canvas) {
+  import UiLayer.noise
 
   private val l = canvas.getContext("2d").asInstanceOf[dom.CanvasRenderingContext2D]
 
@@ -238,13 +253,6 @@ class UiLayer(canvas: Canvas) {
     paint("rgb(232, 222, 196)")
   }
 
-  /** Stable per-square pseudo-random value in [0, 1). */
-  private def noise(seed: Int, k: Int): Double = {
-    var h = seed * 374761393 + k * 668265263
-    h = (h ^ (h >>> 13)) * 1274126177
-    ((h ^ (h >>> 16)) & 0xffff) / 65536.0
-  }
-
   /** Mountains get a unique flip, tilt, size, offset and shade so ridges don't look stamped. */
   private def drawMountain(sq: Square, image: HTMLImageElement): Unit = {
     val t = tileSize
@@ -275,7 +283,7 @@ class UiLayer(canvas: Canvas) {
     }
     tileUnitBase(sq, pos)
     shadow(Color.Shadow, t.x * 0.1, t.x * 0.04, t.y * 0.05)
-    drawFitted(image, pos, t, 0.9, hasUnitMovedEastwards(sq))
+    drawFitted(image, pos, t, 0.86 + noise(sq.index, 13) * 0.08, hasUnitMovedEastwards(sq))
     l.restore()
   }
 
