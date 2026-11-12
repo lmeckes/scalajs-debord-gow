@@ -45,6 +45,7 @@ lazy val server = project.in(file("gow-server"))
       resourceGenerators += Def.task {
         // Client resources
         val indexFile = (client / baseDirectory).value / "index.html"
+        val iconFiles = Seq("favicon.ico", "apple-touch-icon.png").map((client / baseDirectory).value / _)
         val staticFiles = (client / resourceDirectory).value ** "*"
         val jsBinary = (client / fullOptJS).value.data
         val jsSourceMap = jsBinary.getParentFile / (jsBinary.getName + ".map")
@@ -54,7 +55,8 @@ lazy val server = project.in(file("gow-server"))
         IO.copy(Seq(
           (jsBinary, outputFolder / jsBinary.getName),
           (jsSourceMap, outputFolder / jsSourceMap.getName),
-          (indexFile, webFolder / indexFile.getName))
+          (indexFile, webFolder / indexFile.getName)) ++
+          iconFiles.map(f => (f, webFolder / f.getName))
         )
         val staticResources = staticFiles.get()
           .pair(Path.rebase((client / resourceDirectory).value, outputFolder / "classes")).map {
@@ -66,7 +68,7 @@ lazy val server = project.in(file("gow-server"))
           webFolder / indexFile.getName,
           outputFolder / jsBinary.getName,
           outputFolder / jsSourceMap.getName
-        ) ++ staticResources
+        ) ++ iconFiles.map(f => webFolder / f.getName) ++ staticResources
       }
     ))
   )
