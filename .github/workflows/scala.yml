@@ -33,6 +33,8 @@ jobs:
         name: gow-client
         path: |
           gow-client/index.html
+          gow-client/favicon.ico
+          gow-client/apple-touch-icon.png
           gow-client/target/scala-2.13/gow-client-opt.js
           gow-client/target/scala-2.13/gow-client-opt.js.map
           gow-client/target/scala-2.13/classes/
