@@ -75,6 +75,7 @@
 
         /* Main layout */
         main { flex: 1; display: flex; gap: 16px; padding: 12px 20px 16px; min-height: 0; }
+        #boardArea { flex: 1; position: relative; min-width: 0; display: flex; }
         #boardWrap { flex: 1; position: relative; min-width: 0; display: flex; }
         #boardWrap.zoomed { overflow: hidden; }
         #board {
@@ -91,6 +92,18 @@
         body[data-turn=b] #board { box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 0 2px rgba(62, 142, 247, 0.75), 0 0 40px rgba(62, 142, 247, 0.25); }
         #board canvas { position: absolute; top: 0; left: 0; display: block; }
         #comCanvas { opacity: 0.5; }
+        #fullscreenBtn {
+            position: absolute; right: 8px; bottom: 8px; z-index: 2; width: 36px; height: 36px; padding: 0;
+            display: grid; place-items: center; border-radius: 8px; color: #fff;
+            background: rgba(14, 17, 22, 0.55); border-color: rgba(255, 255, 255, 0.14);
+            opacity: 0.75; transition: opacity 0.15s ease, background 0.15s ease, transform 0.15s ease;
+        }
+        #fullscreenBtn:hover { opacity: 1; background: rgba(14, 17, 22, 0.85); transform: scale(1.08); }
+        #fullscreenBtn svg { width: 24px; height: 24px; fill: currentColor; pointer-events: none; }
+        body.board-fullscreen #fullscreenBtn .fs-enter, body:not(.board-fullscreen) #fullscreenBtn .fs-exit { display: none; }
+        body.board-fullscreen #boardArea {
+            position: fixed; inset: 0; z-index: 70; height: auto; padding: 8px; background: var(--bg);
+        }
         #boardWrap { touch-action: none; }
         #loupe {
             display: none; position: fixed; z-index: 80; width: 120px; height: 120px; pointer-events: none;
@@ -415,7 +428,7 @@
             #connStatus { white-space: nowrap; }
             .topbar:has(#connStatus:not(:empty)) .brand-title { font-size: 15px; }
             main { flex-direction: column; gap: 8px; padding: 8px; }
-            #boardWrap { flex: none; height: min(calc((100vw - 16px) * 0.8), 62vh); }
+            #boardArea { flex: none; height: min(calc((100vw - 16px) * 0.8), 62vh); }
             #panel { width: auto; flex: 1; min-height: 0; gap: 8px; }
             .card { padding: 12px; }
             #gameView { order: 99; position: sticky; bottom: 0; z-index: 5; background: var(--surface-solid); }
@@ -433,7 +446,7 @@
         /* Phones held sideways: keep the side panel, narrower. */
         @media (max-width: 900px) and (orientation: landscape) and (max-height: 500px) {
             main { flex-direction: row; }
-            #boardWrap { flex: 1; height: auto; }
+            #boardArea { flex: 1; height: auto; }
             #panel { width: 260px; flex: none; }
         }
     </style>
@@ -449,7 +462,7 @@
             </div>
         </div>
         <div class="topbar-right">
-            <span class="keys"><span data-lang="fr">Glisser pour déplacer ou attaquer &middot; <kbd>Espace</kbd> fin du tour &middot; <kbd>Retour arrière</kbd> annuler &middot; <kbd>D</kbd> sauvegarder le plateau</span><span data-lang="en">Drag to move or attack &middot; <kbd>Space</kbd> end turn &middot; <kbd>Backspace</kbd> undo &middot; <kbd>D</kbd> save board</span></span>
+            <span class="keys"><span data-lang="fr">Glisser pour déplacer ou attaquer &middot; <kbd>Espace</kbd> fin du tour &middot; <kbd>Retour arrière</kbd> annuler &middot; <kbd>D</kbd> sauvegarder le plateau &middot; <kbd>F</kbd> plein écran</span><span data-lang="en">Drag to move or attack &middot; <kbd>Space</kbd> end turn &middot; <kbd>Backspace</kbd> undo &middot; <kbd>D</kbd> save board &middot; <kbd>F</kbd> fullscreen</span></span>
             <button id="rulesBtn"><span data-lang="fr">Règles</span><span data-lang="en">Rules</span></button>
             <div class="lang-switch" role="group" aria-label="Langue / Language">
                 <button type="button" data-set-lang="fr" lang="fr" aria-pressed="true" title="Français">FR</button>
@@ -459,14 +472,20 @@
         </div>
     </header>
     <main>
-        <section id="boardWrap">
-            <div id="board">
-                <canvas id="backgroundCanvas"></canvas>
-                <canvas id="comCanvas"></canvas>
-                <canvas id="terrainCanvas"></canvas>
-                <canvas id="unitCanvas"></canvas>
-                <canvas id="overlayCanvas"></canvas>
+        <section id="boardArea">
+            <div id="boardWrap">
+                <div id="board">
+                    <canvas id="backgroundCanvas"></canvas>
+                    <canvas id="comCanvas"></canvas>
+                    <canvas id="terrainCanvas"></canvas>
+                    <canvas id="unitCanvas"></canvas>
+                    <canvas id="overlayCanvas"></canvas>
+                </div>
             </div>
+            <button id="fullscreenBtn" type="button">
+                <svg class="fs-enter" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+                <svg class="fs-exit" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
+            </button>
         </section>
         <aside id="panel">
             <div id="lobbyView" class="card" style="display: none">
