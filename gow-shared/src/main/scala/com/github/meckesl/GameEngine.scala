@@ -18,9 +18,19 @@ object GameEngine {
       case Move(from, to) =>
         (owned(from), square(to)) match {
           case (Some(src), Some(dst)) if src.canMoveTo(dst) =>
+            val before = GameSnapshot.of(game)
             src.moveUnitTo(dst)
+            game.recordMove(before, Moved(from, to))
             Right(Moved(from, to))
           case _ => Left("Illegal move")
+        }
+      case Undo =>
+        game.turnHistory match {
+          case (before, Moved(from, to)) :: rest =>
+            GameSnapshot.applyTo(before, game)
+            game.turnHistory = rest
+            Right(Undone(from, to))
+          case Nil => Left("Nothing to undo")
         }
       case TakeArsenal(from, to) =>
         (owned(from), square(to)) match {

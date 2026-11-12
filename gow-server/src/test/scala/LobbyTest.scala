@@ -176,6 +176,23 @@ object LobbyTest extends TestSuite {
       assert(mover.last[GameUpdate] == update)
     }
 
+    test("undo takes back the last move for both players") {
+      val f = new Fixture
+      val (mover, waiter) = f.matched()
+      val start = mover.last[MatchStarted].state
+      val move = legalMove(mover.last[MatchStarted])
+      f.lobby.handle(mover, Act(move))
+      assert(waiter.last[GameUpdate].state.undoable == 1)
+      f.lobby.handle(waiter, Act(GameAction.Undo))
+      assert(waiter.last[ServerError].message == "Not your turn")
+      f.lobby.handle(mover, Act(GameAction.Undo))
+      val update = waiter.last[GameUpdate]
+      assert(update.event == GameEvent.Undone(move.from, move.to))
+      assert(update.state == start)
+      f.lobby.handle(mover, Act(GameAction.Undo))
+      assert(mover.last[ServerError].message == "Nothing to undo")
+    }
+
     test("ending the turn hands over to the opponent") {
       val f = new Fixture
       val (mover, waiter) = f.matched()

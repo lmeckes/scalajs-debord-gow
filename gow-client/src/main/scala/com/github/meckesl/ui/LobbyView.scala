@@ -41,6 +41,7 @@ class LobbyView(ui: UiController) {
   private val resignBtn = el[html.Button]("resignBtn")
   private val leaveBtn = el[html.Button]("leaveBtn")
   private val endTurnBtn = el[html.Button]("endTurnBtn")
+  private val undoBtn = el[html.Button]("undoBtn")
   private val meAvatar = el[html.Element]("meAvatar")
   private val turnDot = el[html.Element]("turnDot")
   private val movePips = el[html.Div]("movePips")
@@ -207,6 +208,7 @@ class LobbyView(ui: UiController) {
     if (result.isEmpty && inGame) dom.document.body.setAttribute("data-turn", turn.toString)
     else dom.document.body.removeAttribute("data-turn")
     show(endTurnBtn, result.isEmpty && ui.canAct && game.forcedRetreat.isEmpty)
+    show(undoBtn, result.isEmpty && ui.canUndo)
     opponentStatus.textContent = opponentDeadline.filter(_ => result.isEmpty).map { deadline =>
       val secs = ((deadline - System.currentTimeMillis()) / 1000).toInt.max(0)
       I18n.t(s"Adversaire déconnecté, forfait dans ${secs} s", s"Opponent disconnected, they forfeit in ${secs}s")
@@ -355,6 +357,7 @@ class LobbyView(ui: UiController) {
     case _ =>
   }
   endTurnBtn.onclick = (_: Event) => ui.endTurn()
+  undoBtn.onclick = (_: Event) => ui.undo()
 
   el[html.Button]("loginBtn").onclick = (_: Event) => login()
   nameInput.onkeydown = (e: KeyboardEvent) => if (e.key == "Enter") login()

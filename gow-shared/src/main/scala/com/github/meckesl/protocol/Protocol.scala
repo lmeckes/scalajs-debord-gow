@@ -8,11 +8,14 @@ object GameAction {
   case class Attack(from: Int, target: Int) extends GameAction
   case class TakeArsenal(from: Int, to: Int) extends GameAction
   case object EndTurn extends GameAction
+  /** Takes back the turn player's latest move of this turn. */
+  case object Undo extends GameAction
 
   implicit val moveRW: RW[Move] = macroRW
   implicit val attackRW: RW[Attack] = macroRW
   implicit val takeArsenalRW: RW[TakeArsenal] = macroRW
   implicit val endTurnRW: RW[EndTurn.type] = macroRW
+  implicit val undoRW: RW[Undo.type] = macroRW
   implicit val rw: RW[GameAction] = macroRW
 }
 
@@ -23,17 +26,21 @@ object GameEvent {
   case class Attacked(from: Int, target: Int, result: Int) extends GameEvent
   case class ArsenalTaken(from: Int, to: Int) extends GameEvent
   case object TurnEnded extends GameEvent
+  /** The unit that had moved from `from` to `to` is back on `from`. */
+  case class Undone(from: Int, to: Int) extends GameEvent
 
   implicit val movedRW: RW[Moved] = macroRW
   implicit val attackedRW: RW[Attacked] = macroRW
   implicit val arsenalTakenRW: RW[ArsenalTaken] = macroRW
   implicit val turnEndedRW: RW[TurnEnded.type] = macroRW
+  implicit val undoneRW: RW[Undone] = macroRW
   implicit val rw: RW[GameEvent] = macroRW
 }
 
-/** Full board snapshot: one char per square for units and facing ('E', 'W' or '.'). */
+/** Full board snapshot: one char per square for units and facing ('E', 'W' or '.');
+  * `undoable` is how many of this turn's moves can still be taken back. */
 case class GameState(units: String, facing: String, turnPlayer: Char, remainingMoves: Int,
-                     moved: Seq[Int], forcedRetreat: Option[Int])
+                     moved: Seq[Int], forcedRetreat: Option[Int], undoable: Int = 0)
 object GameState {
   implicit val rw: RW[GameState] = macroRW
 }

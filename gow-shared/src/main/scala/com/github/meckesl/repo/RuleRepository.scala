@@ -6,6 +6,7 @@ import TileRepository.Tile
 object RuleRepository {
   val turnMoves = 5
   val turnAttacks = 1
+  val turnUndos = 5
   val relaysEmitWhenChained = true
   var scenarioBoards: Map[String, Board] = Map()
   var scenarioUnits: Map[String, Seq[Tile]] = Map()

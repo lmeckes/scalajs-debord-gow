@@ -279,6 +279,46 @@ object AppTest extends TestSuite {
       assert(game.turnPlayer != red)
     }
 
+    test("undoTakesBackUpToFiveMovesOfTheTurn") {
+
+      val board =
+        """
+          |A I I I I I I
+          |. . . . . . .
+          |. . . . . . .
+          |. . . . . . .
+          |. . . . . . .
+          |. . . . . . .
+          |i . . . . . a
+        """.stripMargin
+      val game = setupGame(board, board, 7)
+      val red = getWithTurn(2, 1).unit.player
+      val start = com.github.meckesl.GameSnapshot.of(game)
+
+      assert(GameEngine.applyAction(game, red, GameAction.Undo) == Left("Nothing to undo"))
+      (2 to 6).foreach { x =>
+        assert(GameEngine.applyAction(game, red, GameAction.Move(get(x, 1).index, get(x, 2).index)).isRight)
+      }
+      assert(com.github.meckesl.GameSnapshot.of(game).undoable == 5)
+
+      assert(GameEngine.applyAction(game, red, GameAction.Undo) ==
+        Right(GameEvent.Undone(get(6, 1).index, get(6, 2).index)))
+      assert(get(6, 1).unit == RedInfantry && get(6, 2).unit == VoidTile)
+      assert(game.turnRemainingMoves == 1)
+      assert(get(6, 1).canMove)
+
+      (1 to 4).foreach(_ => assert(GameEngine.applyAction(game, red, GameAction.Undo).isRight))
+      assert(com.github.meckesl.GameSnapshot.of(game) == start)
+      assert(GameEngine.applyAction(game, red, GameAction.Undo) == Left("Nothing to undo"))
+
+      assert(GameEngine.applyAction(game, red, GameAction.Move(get(2, 1).index, get(2, 2).index)).isRight)
+      assert(GameEngine.applyAction(game, red, GameAction.EndTurn).isRight)
+      val blue = game.turnPlayer
+      assert(GameEngine.applyAction(game, red, GameAction.Undo) == Left("Not your turn"))
+      assert(GameEngine.applyAction(game, blue, GameAction.Undo) == Left("Nothing to undo"))
+      assert(get(2, 2).unit == RedInfantry)
+    }
+
     test("forcedRetreat") {
 
       val board =

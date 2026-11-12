@@ -98,6 +98,7 @@ object I18n {
     case "Illegal arsenal capture" => "Prise d'arsenal interdite"
     case "Illegal attack" => "Attaque interdite"
     case "The attacked unit must retreat first" => "L'unité attaquée doit d'abord battre en retraite"
+    case "Nothing to undo" => "Aucun déplacement à annuler"
     case other => other
   }
 }

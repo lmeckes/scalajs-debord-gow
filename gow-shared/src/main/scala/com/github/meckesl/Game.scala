@@ -1,5 +1,7 @@
 package com.github.meckesl
 
+import com.github.meckesl.protocol.GameEvent.Moved
+import com.github.meckesl.protocol.GameState
 import com.github.meckesl.repo.{CardinalityRepository, RuleRepository}
 import com.github.meckesl.repo.CardinalityRepository.{Cardinality, SOURCE}
 import com.github.meckesl.repo.PlayerRepository.{Blue, Neutral, Player, Red}
@@ -16,6 +18,12 @@ class Game(val board: Board, startingUnits: Seq[Tile]) {
 
   var forcedRetreat: Option[Square] = None
 
+  /** This turn's latest moves, most recent first, each with the state it can be undone to. */
+  var turnHistory: List[(GameState, Moved)] = Nil
+
+  def recordMove(before: GameState, move: Moved): Unit =
+    turnHistory = (before -> move :: turnHistory).take(RuleRepository.turnUndos)
+
   val capturedUnits: mutable.Seq[Tile] = mutable.Seq[Tile]()
 
   val gameSquares: Seq[Square] =
@@ -28,6 +36,7 @@ class Game(val board: Board, startingUnits: Seq[Tile]) {
   def nextTurn(): Unit = {
     turnRemainingMoves = RuleRepository.turnMoves
     turnMovedUnits.clear()
+    turnHistory = Nil
     if (turnPlayer == Red)
       turnPlayer = Blue
     else
