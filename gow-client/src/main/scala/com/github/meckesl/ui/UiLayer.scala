@@ -287,8 +287,8 @@ class UiLayer(canvas: Canvas) {
     (sq.lastMoveDir.equals(CardinalityRepository.SOURCE) && sq.coords.x < boardSize.x / 2) ||
       sq.lastMoveDir.equals(CardinalityRepository.E)
 
-  /** Draws a unit on its coloured base; `at` is the (possibly fractional) board position. */
-  def tileUnit(sq: Square, image: HTMLImageElement, at: Point): Unit = {
+  /** Draws a unit, on its coloured base when `withBase`; `at` is the (possibly fractional) board position. */
+  def tileUnit(sq: Square, image: HTMLImageElement, at: Point, withBase: Boolean): Unit = {
     val t = tileSize
     val pos = at * t
     l.save()
@@ -296,7 +296,7 @@ class UiLayer(canvas: Canvas) {
       l.globalAlpha = 0.4
       l.asInstanceOf[js.Dynamic].filter = "grayscale(1)"
     }
-    tileUnitBase(sq, pos)
+    if (withBase) tileUnitBase(sq, pos)
     shadow(Color.Shadow, t.x * 0.1, t.x * 0.04, t.y * 0.05)
     drawUnitArt(image, pos, 0.95 + noise(sq.index, 13) * 0.1, hasUnitMovedEastwards(sq))
     l.restore()

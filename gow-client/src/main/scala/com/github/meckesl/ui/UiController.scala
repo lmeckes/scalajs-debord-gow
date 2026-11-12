@@ -88,7 +88,7 @@ case class UiController(var game: Game, backgroundCanvas: Canvas, comCanvas: Can
     TileRepository.units.foreach(u => {
       Loader.loadTileAsync(u, image => {
         game.gameSquares.filter(_.unit.equals(u)).foreach(sq => {
-          uiUnits.tileUnit(sq, image, unitPosition(sq, time))
+          uiUnits.tileUnit(sq, image, unitPosition(sq, time), sq.unit.player == game.turnPlayer)
         })
       })
     })
