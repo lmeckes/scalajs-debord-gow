@@ -2,7 +2,7 @@ package com.github.meckesl
 
 import com.github.meckesl.io.Loader
 import com.github.meckesl.repo.ScenarioRepository
-import com.github.meckesl.ui.{BoardView, I18n, InfoPanel, LobbyView, UiController}
+import com.github.meckesl.ui.{BoardView, FullscreenToggle, I18n, InfoPanel, LobbyView, UiController}
 import com.github.meckesl.Game
 import org.scalajs.dom._
 import org.scalajs.dom.document._
@@ -32,7 +32,12 @@ object App {
         import scala.scalajs.js.timers._
         val boardView = new BoardView(boardWrap, board,
           Seq(backgroundCanvas, comCanvas, terrainCanvas, unitCanvas, overlayCanvas), uiController)
-        def layout(): Unit = boardView.layout()
+        lazy val fullscreen: FullscreenToggle = new FullscreenToggle(getElementById("boardArea").asInstanceOf[html.Element],
+          board, getElementById("fullscreenBtn").asInstanceOf[html.Button], () => layout())
+        def layout(): Unit = {
+          boardView.layout()
+          fullscreen.place()
+        }
         uiController.onBoardChange = () => layout()
         layout()
         var handle: SetTimeoutHandle = null
