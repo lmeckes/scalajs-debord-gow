@@ -373,7 +373,8 @@ class LobbyView(ui: UiController) {
   el[html.Button]("localBtn").onclick = (_: Event) => startLocal()
   el[html.Button]("renameBtn").onclick = (_: Event) => showLogin()
   resignBtn.onclick = (_: Event) => if (dom.window.confirm(I18n.t("Abandonner cette partie ?", "Resign this game?"))) client.send(Resign)
-  leaveBtn.onclick = (_: Event) => leaveGame()
+  leaveBtn.onclick = (_: Event) =>
+    if (result.nonEmpty || dom.window.confirm(I18n.t("Quitter cette partie et revenir au salon ?", "Leave this game and go back to the lobby?"))) leaveGame()
   chatInput.onkeydown = (e: KeyboardEvent) =>
     if (e.key == "Enter" && chatInput.value.trim.nonEmpty) {
       client.send(Chat(chatInput.value))

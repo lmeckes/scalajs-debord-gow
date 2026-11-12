@@ -254,6 +254,11 @@
         #opponentStatus { color: #ff9a9d; font-size: 13px; margin-top: 8px; }
         #opponentStatus:empty { display: none; }
         .actions { display: grid; gap: 8px; margin-top: 14px; }
+        .actions #leaveBtn {
+            justify-self: center; padding: 4px 10px; font-size: 12px; font-weight: 500;
+            background: none; border-color: transparent; color: var(--muted);
+        }
+        .actions #leaveBtn:hover { color: var(--text); background: var(--surface-2); }
         .hint { color: var(--muted); font-size: 12px; text-align: center; }
 
         /* Unit info */
@@ -419,6 +424,7 @@
             .actions { display: flex; margin-top: 10px; }
             .actions button { flex: 1; padding: 10px 8px; }
             .actions #endTurnBtn { flex: 2; }
+            .actions #leaveBtn { flex: 0 0 auto; align-self: center; padding: 6px 8px; }
             #chatCard { flex: none; min-height: 180px; }
         }
         @media (max-width: 460px) {
