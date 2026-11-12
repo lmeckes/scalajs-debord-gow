@@ -443,7 +443,7 @@
             </div>
         </div>
         <div class="topbar-right">
-            <span class="keys"><span data-lang="fr">Glisser pour déplacer ou attaquer &middot; <kbd>Espace</kbd> fin du tour &middot; <kbd>D</kbd> sauvegarder le plateau</span><span data-lang="en">Drag to move or attack &middot; <kbd>Space</kbd> end turn &middot; <kbd>D</kbd> save board</span></span>
+            <span class="keys"><span data-lang="fr">Glisser pour déplacer ou attaquer &middot; <kbd>Espace</kbd> fin du tour &middot; <kbd>Retour arrière</kbd> annuler &middot; <kbd>D</kbd> sauvegarder le plateau</span><span data-lang="en">Drag to move or attack &middot; <kbd>Space</kbd> end turn &middot; <kbd>Backspace</kbd> undo &middot; <kbd>D</kbd> save board</span></span>
             <button id="rulesBtn"><span data-lang="fr">Règles</span><span data-lang="en">Rules</span></button>
             <div class="lang-switch" role="group" aria-label="Langue / Language">
                 <button type="button" data-set-lang="fr" lang="fr" aria-pressed="true" title="Français">FR</button>
@@ -502,6 +502,7 @@
                 <div id="opponentStatus"></div>
                 <div class="actions">
                     <button id="endTurnBtn" class="primary"><span data-lang="fr">Fin du tour</span><span data-lang="en">End turn</span></button>
+                    <button id="undoBtn" data-fr-title="Annuler le dernier déplacement (Retour arrière)" data-en-title="Undo the last move (Backspace)"><span data-lang="fr">Annuler</span><span data-lang="en">Undo</span></button>
                     <button id="resignBtn" class="danger"><span data-lang="fr">Abandonner</span><span data-lang="en">Resign</span></button>
                     <button id="leaveBtn"><span data-lang="fr">Retour au salon</span><span data-lang="en">Back to lobby</span></button>
                 </div>
@@ -553,6 +554,8 @@
                 <li><b>Prenez un arsenal</b> en déplaçant une unité de combat sur un arsenal ennemi&nbsp;: il est détruit.</li>
                 <li>Appuyez sur <b>Fin du tour</b> (ou <kbd>Espace</kbd>) pour terminer votre tour. Après vos déplacements, vous pouvez
                     encore attaquer&nbsp;; votre tour se termine après une attaque (réussie ou non) ou la prise d'un arsenal.</li>
+                <li>Un mauvais déplacement&nbsp;? Appuyez sur <b>Annuler</b> (ou <kbd>Retour arrière</kbd>) pour le reprendre, jusqu'à 5 fois par tour.
+                    Une attaque ou la prise d'un arsenal ne peut pas être annulée.</li>
             </ul>
 
             <h2>Communications</h2>
@@ -613,6 +616,8 @@
                 <li><b>Take an arsenal</b> by moving a combat unit onto an enemy arsenal: it is destroyed.</li>
                 <li>Press <b>End turn</b> (or <kbd>Space</kbd>) to finish your turn. After your moves you may
                     still attack; your turn ends after an attack (successful or not) or taking an arsenal.</li>
+                <li>Misclicked? Press <b>Undo</b> (or <kbd>Backspace</kbd>) to take a move back, up to 5 times per turn.
+                    Attacks and arsenal captures can't be undone.</li>
             </ul>
 
             <h2>Communication</h2>

@@ -43,6 +43,10 @@ case class UiController(var game: Game, backgroundCanvas: Canvas, comCanvas: Can
   def canAct: Boolean = myTurn
   def endTurn(): Unit = if (myTurn) onAction(GameAction.EndTurn)
 
+  private var undoable = 0
+  def canUndo: Boolean = myTurn && undoable > 0
+  def undo(): Unit = if (canUndo) onAction(GameAction.Undo)
+
   private var squareHover: Square = _
   private var squareClicked: Square = _
   private var squareSource: Square = _
@@ -121,6 +125,7 @@ case class UiController(var game: Game, backgroundCanvas: Canvas, comCanvas: Can
   def showState(state: GameState, event: Option[GameEvent]): Unit = {
     val previousTurn = game.turnPlayer
     GameSnapshot.applyTo(state, game)
+    undoable = state.undoable
     squareSource = null
     squareClicked = null
     uiOverlay.clearLayer()
@@ -128,6 +133,9 @@ case class UiController(var game: Game, backgroundCanvas: Canvas, comCanvas: Can
       case GameEvent.Moved(from, to) =>
         animation = Some(MoveAnimation(to, restingPosition(game.gameSquares(from)), now))
         play(audioChannel2, Loader.getSoundUrl(game.gameSquares(to), "move"))
+      case GameEvent.Undone(from, to) =>
+        animation = Some(MoveAnimation(from, restingPosition(game.gameSquares(to)), now))
+        play(audioChannel2, Loader.getSoundUrl(game.gameSquares(from), "move"))
       case GameEvent.Attacked(from, _, result) if result > 0 => play(audioChannel2, Loader.getSoundUrl(game.gameSquares(from), "attack"))
       case GameEvent.ArsenalTaken(from, to) =>
         animation = Some(MoveAnimation(to, restingPosition(game.gameSquares(from)), now))
@@ -366,10 +374,14 @@ case class UiController(var game: Game, backgroundCanvas: Canvas, comCanvas: Can
   def onKeydown(e: dom.KeyboardEvent): Unit = {
     val nextTurn = dom.KeyCode.Space
     val downloadGame = dom.KeyCode.D
+    val undoMove = dom.KeyCode.Backspace
     e.keyCode match {
       case `nextTurn` if myTurn =>
         e.preventDefault()
         onAction(GameAction.EndTurn)
+      case `undoMove` =>
+        e.preventDefault()
+        undo()
       case `downloadGame` =>
         downloadGameFile()
       case _ =>

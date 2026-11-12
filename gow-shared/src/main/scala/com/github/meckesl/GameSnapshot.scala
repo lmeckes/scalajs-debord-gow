@@ -15,7 +15,8 @@ object GameSnapshot {
     turnPlayer = game.turnPlayer.c,
     remainingMoves = game.turnRemainingMoves,
     moved = game.turnMovedUnits.map(_.index).toSeq.sorted,
-    forcedRetreat = game.forcedRetreat.map(_.index)
+    forcedRetreat = game.forcedRetreat.map(_.index),
+    undoable = game.turnHistory.size
   )
 
   def applyTo(state: GameState, game: Game): Unit = {
